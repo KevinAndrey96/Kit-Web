@@ -1,8 +1,8 @@
 <?php
 /**
  * @author    ThemePunch <info@themepunch.com>
- * @link      http://www.themepunch.com/
- * @copyright 2016 ThemePunch
+ * @link      https://www.themepunch.com/
+ * @copyright 2019 ThemePunch
  */
 
 if( !defined( 'ABSPATH') ) exit();
@@ -27,8 +27,8 @@ class RevSliderPageTemplate {
 
 		if( null == self::$instance ) {
 			self::$instance = new RevSliderPageTemplate();
-		} 
-
+		}
+		
 		return self::$instance;
 
 	} 
@@ -148,4 +148,5 @@ class RevSliderPageTemplate {
 
 	}
 }
+
 ?>
