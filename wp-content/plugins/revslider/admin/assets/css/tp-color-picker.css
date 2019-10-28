@@ -1612,4 +1612,15 @@
 .revbuilder-colorpicker-open .select2RS-container.select2RS-container--autowidth .select2RS-dropdown { min-width: 150px; }
 
 .revbuilder-cpicker-dropdown {display: none}
-.clearfix {clear: both}
+/*.clearfix {clear: both}*/
+.clearfix:before,
+.clearfix:after {
+    content: " ";
+    display: table;
+}
+
+.clearfix:after {
+    clear: both;
+}
+
+#revbuilder-cpicker-left { direction: ltr !important }

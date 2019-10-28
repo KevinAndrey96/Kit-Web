@@ -171,11 +171,11 @@ class RevSliderUpdate {
 			if('actual' != $version_info){
 				$version_info = json_decode($version_info);
 
-				if(isset($version_info->hash)) update_option('revslider-update-hash', $version_info->hash);
-				if(isset($version_info->version)) update_option('revslider-latest-version', $version_info->version);
-				if(isset($version_info->stable)) update_option('revslider-stable-version', $version_info->stable);
-				if(isset($version_info->notices)) update_option('revslider-notices', $version_info->notices);
-				if(isset($version_info->addons)) update_option('revslider-addons', $version_info->addons);
+				if(isset($version_info->hash))		update_option('revslider-update-hash', $version_info->hash);
+				if(isset($version_info->version))	update_option('revslider-latest-version', $version_info->version);
+				if(isset($version_info->stable))	update_option('revslider-stable-version', $version_info->stable);
+				if(isset($version_info->notices))	update_option('revslider-notices', $version_info->notices);
+				if(isset($version_info->addons))	update_option('revslider-addons', $version_info->addons);
 				
 				if(isset($version_info->deactivated) && $version_info->deactivated === true){
 					if(get_option('revslider-valid', 'false') == 'true'){

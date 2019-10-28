@@ -4506,7 +4506,7 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 
 		$rs_nav = new RevSliderNavigation();
 		//do on all navigations ?
-		$navs = ($navs === false) ? $rs_nav->get_all_navigations(false) : (array) $navs;
+		$navs = ($navs === false) ? $rs_nav->get_all_navigations(false, false, true) : (array) $navs;
 
 		$new_navs = array();
 		if(!empty($navs)){
@@ -4515,12 +4515,14 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 
 			//now push all again back in with new IDs
 			foreach($navs as $nav){
+				$nav['css'] = (!is_array($nav['css'])) ? json_decode($nav['css'], true) : $nav['css'];
+				$nav['markup'] = (!is_array($nav['markup'])) ? json_decode($nav['markup'], true) : $nav['markup'];
+				
 				foreach($this->navtypes as $navtype){
 					if(isset($nav['css'][$navtype]) && !empty($nav['css'][$navtype])){
 						//otherwise we are already on 6.0
 						$new_nav = $this->create_new_navigation_6_0($nav, $navtype);
-
-						$wpdb->update($wpdb->prefix . RevSliderFront::TABLE_NAVIGATIONS,
+						$wpdb->insert($wpdb->prefix . RevSliderFront::TABLE_NAVIGATIONS,
 							array(
 								'name' => $this->get_val($new_nav, 'name'),
 								'handle' => $this->get_val($new_nav, 'handle'),
@@ -6310,6 +6312,27 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 		}
 		
 		return 100;
+	}
+	
+	
+	/**
+	 * change rgba to hex
+	 * @since: 5.0
+	 * @moved: 6.1.3
+	 */
+	public function rgba2hex($rgba){
+		if(strtolower($rgba) == 'transparent') return $rgba;
+		
+		$temp = explode(',', $rgba);
+		$rgb = array();
+		if(count($temp) == 4) unset($temp[3]);
+		foreach($temp as $val){
+			$t = dechex(preg_replace('/[^\d.]/', '', $val));
+			if(strlen($t) < 2) $t = '0'.$t;
+			$rgb[] = $t;
+		}
+		
+		return '#'.implode('', $rgb);
 	}
 }
 

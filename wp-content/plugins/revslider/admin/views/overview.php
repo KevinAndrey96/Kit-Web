@@ -71,7 +71,8 @@ if($time < '12'){
 			<div class="tp-clearfix"></div>
 		</div>
 		<div class="div15"></div>
-		<div class="overview_elements"><div class="overview_elements_overlay"></div></div>
+		<div class="overview_elements" style="z-index:2"><div class="overview_elements_overlay"></div></div>
+		<div class="overview_slide_elements" style="z-index:1"><div class="overview_slide_elements_overlay"></div>
 		<div id="modulesoverviewfooter" class="overview_header_footer">
 			<div class="rs_fh_right">
 				<div class="ov-pagination"></div>			
@@ -83,6 +84,8 @@ if($time < '12'){
 		<div id="slider_folders_wrap"></div>
 		<div id="slider_folders_wrap_underlay"></div>
 	</div>
+
+
 
 	<div class="div150"></div>
 	<!-- PLUGIN INFORMATIONS -->	

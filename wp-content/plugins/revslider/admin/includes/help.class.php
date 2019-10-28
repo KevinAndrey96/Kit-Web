@@ -1337,10 +1337,10 @@ class RevSliderHelp {
 								)
 							),
 							'app_id' => array(
-								$t => __("App ID", 'revsliderhelp'),
+								$t => __("Access Token", 'revsliderhelp'),
 								$h => "source.facebook.appId",
 								$k => array("facebook", "app id"),
-								$d => __("Your <a href='https://developers.facebook.com/docs/apps/register' target='_blank'>Facebook App's</a> ID", 'revsliderhelp'),
+								$d => __("<a href='https://www.themepunch.com/faq/facebook-stream-setup-instructions-access-token/' target='_blank'>Generate</a> a Facebook Access Token with the needed permissions", 'revsliderhelp'),
 								$a => $u . "module-content/#facebook",
 								$hl => array(
 									$dp => array(array($p => 'settings.sourcetype', $v => 'facebook', $o => 'slider_sourcetype_facebook')), 

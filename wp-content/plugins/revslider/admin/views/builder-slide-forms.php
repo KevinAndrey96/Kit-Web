@@ -111,8 +111,10 @@ if ($wpml->wpml_exists()) {
 					<!-- BG IMAGE SIZE -->
 					<div class="slidebg_image_settings slide_bg_settings">
 						<label_a><?php _e('Source Size', 'revslider');?></label_a><select data-theme="dark" id="slide_bg_img_ssize"  class="slideinput tos2 searchbox easyinit "  data-r="bg.imageSourceType">
-							<option value="full">Original Size</option><option value="thumbnail">Thumbnail</option><option value="medium">Medium</option><option value="large">Large</option><option value="medium_large">Medium Large</option><option value="twentyseventeen-featured-image">Twentyseventeen-featured-image</option><option value="twentyseventeen-thumbnail-avatar">Twentyseventeen-thumbnail-avatar</option>
-						</select><span class="linebreak"></span>
+						<?php
+foreach ($img_sizes as $imghandle => $imgSize) {
+	echo '<option value="' . $imghandle . '">' . $imgSize . '</option>';
+}?></select><span class="linebreak"></span>
 					</div>
 
 					<!-- BACKGROUND / COVER IMAGE SETTINGS -->

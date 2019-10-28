@@ -199,18 +199,21 @@ i.rbm_close.material-icons { line-height: 50px; width: 50px; position: absolute;
 #rbm_quickguide,
 #rbm_quickguide .rbm_content { width: 1200px;  }
 #rbm_quickguide .rbm_content { position: relative;  height:750px; overflow: hidden}
-#rbm_globalsettings { width: 650px; min-height: 800px; }
+#rbm_globalsettings { width: 1000px; min-height: 800px; }
 #rbm_decisionModal { width: 500px; min-height: 300px; }
 #rbm_globalsettings .rbm_content,
 #rbm_decisionModal .rbm_content { padding: 50px; }
+
+.rbm_general_half { width: 50%;position: relative; display: inline-block; vertical-align: top; box-sizing: border-box }
 
 #rbm_welcomeModal { width: 1200px; }
 #rbm_welcomeModal .rbm_content{ background-image:url(../images/wc.jpg); background-position:top center; background-repeat:no-repeat; background-color:#212226;}
 #welcome_logo { background: url(../images/wc_logo.png); background-size: contain; width:300px; height:100px; position: relative; margin:0px auto; display:block; margin-bottom:90px;}
 
 
-#rbm_globalsettings .rbm_content label_a { min-width: 240px; width: 240px; }
+#rbm_globalsettings .rbm_content label_a { min-width: 225px; width: 225px; }
 
+.general_hr { width: 100%; height: 1px; border: none; margin-bottom: 20px; margin-top: 0px; background: #3f444a; }
 
 
 .rbm_darkhalfbutton {  display: inline-block; width:195px; line-height: 32px; text-align: center;  color:#b7bbc0; font-size:13px; background: #3a3e44; margin-top:1px; box-sizing: border-box; cursor:pointer; box-sizing: border-box; border-radius: 4px}
@@ -333,7 +336,7 @@ mcg_guide_image { width: 280px; height: 160px; background-position: top left; ba
 
 #obj_fil_favorite,
 #obj_updatefromserver,
-#obj_addsliderasmodal { font-size: 17px; color: #797b7e; font-weight: 500; display: inline-block; margin-right: 25px; cursor: pointer }
+#obj_addsliderasmodal { font-size: 17px; color: #797b7e; font-weight: 500; display: inline-block; margin-right: 25px; cursor: pointer; vertical-align: top }
 #obj_fil_favorite i.material-icons,
 #obj_updatefromserver i.material-icons { font-size: 17px; margin-right: 5px; }
 
@@ -444,6 +447,7 @@ img.olib_png_obj { margin: auto; max-width: 100%;height: 150px;position: relativ
 
 
 
+#objectlibrary .olibrary_media_wrap i.fonticonobj,
 .olibrary_media_wrap i.fonticonobj {     display: block; font-size:75px;line-height: 150px;  vertical-align: top; text-align:center; color:#000;}
 .olibrary_media_wrap i.fonticonobj.material-icons { width: 100%;height: 100%;line-height: 150px !important;}
 
@@ -506,7 +510,12 @@ img.olib_png_obj { margin: auto; max-width: 100%;height: 150px;position: relativ
 #ol_results .rsl_breadcrumb_div { display: inline-block; color: #797b7e; /*#323438;*/ margin-right: 10px; font-size: 25px; line-height: 25px; vertical-align: top }
 
 #ol_results .rsl_breadcrumb:hover { color: #fff; }
-#ol_modulessorting { display: inline-block }
+#ol_modulessorting { display: inline-block;vertical-align: top; }
+
+#ol_modulessorting .select2RS-container .select2RS-selection--single,
+#modulesoverviewheader .select2RS-container .select2RS-selection--single,
+#modulesoverviewfooter .select2RS-container .select2RS-selection--single
+ { height: 50px; }
 
 .olti_content .tponoffwrap  { margin-top: 0px; margin-bottom: 10px; margin-right: 10px; }
 
@@ -561,11 +570,17 @@ img.olib_png_obj { margin: auto; max-width: 100%;height: 150px;position: relativ
 
 .folder_library_element .show_rsle { opacity: 0 !important }
 
+.rs_library_element .link_to_slides_overview,
 .rs_library_element .link_to_slideadmin {text-align: center ; z-index: 20; width: 50px; height: 50px; position: absolute; top: 50px; left: 50%; margin-left: -25px; background: #fff; border-radius: 35px; display:none; box-shadow:0px 3px 10px 0px rgba(0,0,0,0.25);}
+
+.rs_library_element:hover .link_to_slides_overview,
 .rs_library_element:hover .link_to_slideadmin,
 .rs_library_element.selected .link_to_slideadmin,
 .rs_library_element.menuopen .link_to_slideadmin { display: block; }
+.rs_library_element .link_to_slides_overview i.material-icons,
 .rs_library_element .link_to_slideadmin i.material-icons{ font-size: 30px; color: #006dd2; line-height: 50px !important;  }
+
+
 
 
 .rs_library_element .title_container {  width: 245px; height: 40px; font-weight:500; line-height: 40px; position: absolute; bottom: 0px; left: 0px; font-size: 15px; color: #b7bbc0; padding: 0px 10px; background: transparent;box-sizing: border-box; border:none; outline:none; box-shadow: none; z-index: 2; margin:0px;}
@@ -604,7 +619,7 @@ img.olib_png_obj { margin: auto; max-width: 100%;height: 150px;position: relativ
 .folder_library_element .rsle_tool.previewslider { display: none; }
 
 .ov-pagination { display: inline-block; margin-right: 20px; }
-.page_button { font-size: 17px;color: #797b7e; font-weight: 500; display: inline-block; line-height: 30px; width: 30px; margin-right: 5px; text-align: center; cursor: pointer}
+.page_button { font-size: 17px;color: #797b7e; font-weight: 500; display: inline-block; line-height: 30px; width: 30px; height: 30px; margin-top: 10px; margin-right: 5px; text-align: center; cursor: pointer}
 .page_button.selected,
 .page_button:hover { background:#006dd2; color: #fff; }
 

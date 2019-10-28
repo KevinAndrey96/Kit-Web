@@ -580,32 +580,13 @@ class RevSliderFunctions extends RevSliderData {
 	
 	
 	/**
-	 * change rgba to hex
-	 * @since: 5.0
-	 */
-	public function rgba2hex($rgba){
-		if(strtolower($rgba) == 'transparent') return $rgba;
-		
-		$temp = explode(',', $rgba);
-		$rgb = array();
-		if(count($temp) == 4) unset($temp[3]);
-		foreach($temp as $val){
-			$t = dechex(preg_replace('/[^\d.]/', '', $val));
-			if(strlen($t) < 2) $t = '0'.$t;
-			$rgb[] = $t;
-		}
-		
-		return '#'.implode('', $rgb);
-	}
-	
-	
-	/**
 	 * check if file is in zip
 	 * @since: 5.0
 	 */
 	public function check_file_in_zip($d_path, $image, $alias, &$alreadyImported, $add_path = false){
 		global $wp_filesystem;
 		
+		$image = (is_array($image)) ? $this->get_val($image, 'url') : $image;
 		if(trim($image) !== ''){
 			if(strpos($image, 'http') !== false){
 				//dont change, as it is an external image
@@ -825,12 +806,12 @@ class RevSliderFunctions extends RevSliderData {
 	 * get contents of the static css file
 	 * @before: RevSliderOperations::updateStaticCss()
 	 */
-	public function update_static_css($content){
-		$content = str_replace(array("\'", '\"', '\\\\'),array("'", '"', '\\'), trim($content));
+	public function update_static_css($css){
+		$css = str_replace(array("\'", '\"', '\\\\'),array("'", '"', '\\'), trim($css));
 		
-		update_option('revslider-static-css', $content, 'off');
+		update_option('revslider-static-css', $css);
 
-		return $content;
+		return $css;
 	}
 	
 	
@@ -938,7 +919,7 @@ class RevSliderFunctions extends RevSliderData {
 						$regex_url	= "/(http|https|ftp|ftps)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(\/\S*)?/";
 						$url		= 'https://fonts.googleapis.com/css?family='.$font;
 						$content	= wp_remote_get($url);
-						$body = $this->get_val($content, 'body', '');
+						$body		= $this->get_val($content, 'body', '');
 						
 						if(preg_match_all($regex_url, $body, $found_fonts)){
 							foreach($found_fonts as $found_font){
@@ -980,13 +961,8 @@ class RevSliderFunctions extends RevSliderData {
 			
 		}else{
 			$url = $this->modify_fonts_url('https://fonts.googleapis.com/css?family=');
-			
-			if($tcf !== ''){
-				$ret .= '<link href="'.$url.$tcf.'" rel="stylesheet" property="stylesheet" type="text/css" media="all">'."\n"; //id="rev-google-font"
-			}
-			if($tcf2 !== ''){
-				$ret .= html_entity_decode(stripslashes($tcf2));
-			}
+			$ret .= ($tcf !== '') ? '<link href="'.$url.$tcf.'" rel="stylesheet" property="stylesheet" media="all" type="text/css" >'."\n" : '';
+			$ret .= ($tcf2 !== '') ? html_entity_decode(stripslashes($tcf2)) : '';
 		}
 		
 		return apply_filters('revslider_printCleanFontImport', $ret);
@@ -1003,83 +979,6 @@ class RevSliderFunctions extends RevSliderData {
 		$df = $this->get_val($gs, 'fonturl', '');
 		
 		return ($df !== '') ? $df : $url;
-	}
-	
-	
-	/**
-	 * get recent posts
-	 * @since: 5.1.1
-	 * before: RevSliderSlider::getPostsFromRecent()
-	 */
-	public function get_latest_posts($max_posts = false){
-		$post_id	= get_the_ID();
-		$my_posts	= array();
-		$args		= array(
-			'post_type' => 'any',
-			'suppress_filters' => 0,
-			'meta_key'	=> '_thumbnail_id',
-			'orderby'	=> 'date',
-			'order'		=> 'DESC'
-		);
-		
-		if($max_posts == false){
-			$source		= $this->get_val($this->params, 'source');
-			$post		= $this->get_val($source, 'post');
-			$max_posts	= $this->get_val($post, 'maxPosts', 30);
-			$max_posts	= (empty($max_posts) || !is_numeric($max_posts)) ? -1 : $max_posts;
-		}else{
-			$max_posts = intval($max_posts);
-		}
-		
-		$args['posts_per_page']	= $max_posts;
-		$args	= apply_filters('revslider_get_latest_posts', $args, $post_id);
-		$posts	= get_posts($args);
-		
-		if(!empty($posts)){
-			foreach($posts as $post){
-				$my_posts[] = (method_exists($post, 'to_array')) ? $post->to_array() : (array)$post;
-			}
-		}
-		
-		return $my_posts;
-	}
-	
-	
-	/**
-	 * get popular posts
-	 * @since: 5.1.1
-	 * @before: RevSliderSlider::getPostsFromPopular();
-	 */
-	public function get_popular_posts($max_posts = false){
-		$post_id	= get_the_ID();
-		$my_posts	= array();
-		
-		if($max_posts == false){
-			$source		= $this->get_param('source');
-			$post		= $this->get_val($source, 'post');
-			$max_posts	= $this->get_val($post, 'maxPosts', 30);
-			$max_posts = (empty($max_posts) || !is_numeric($max_posts)) ? -1 : $max_posts;
-		}else{
-			$max_posts = intval($max_posts);
-		}
-		
-		$args = array(
-			'suppress_filters' => 0,
-			'posts_per_page' => $max_posts,
-			'post_type'	=> 'any',
-			'meta_key'  => '_thumbnail_id',
-			'orderby'   => 'comment_count',
-			'order'     => 'DESC'
-		);
-		
-		$args	= apply_filters('revslider_get_popular_posts', $args, $post_id);
-		$posts	= get_posts($args);
-		
-		foreach($posts as $post){
-			$my_posts[] = (method_exists($post, 'to_array')) ? $post->to_array() : (array)$post;
-		}
-		
-		return $my_posts;
 	}
 	
 	
@@ -1269,76 +1168,6 @@ class RevSliderFunctions extends RevSliderData {
 	
 	
 	/**
-	 * change hex to rgba
-	 */
-    public function hex2rgba($hex, $transparency = false, $raw = false, $do_rgb = false){
-        if($transparency !== false){
-			$transparency = ($transparency > 0) ? number_format(($transparency / 100), 2, '.', '') : 0;
-        }else{
-            $transparency = 1;
-        }
-
-        $hex = str_replace('#', '', $hex);
-		
-        if(strlen($hex) == 3){
-            $r = hexdec(substr($hex,0,1).substr($hex,0,1));
-            $g = hexdec(substr($hex,1,1).substr($hex,1,1));
-            $b = hexdec(substr($hex,2,1).substr($hex,2,1));
-        }elseif($this->is_rgb($hex)){
-			return $hex;
-		}else{
-            $r = hexdec(substr($hex,0,2));
-            $g = hexdec(substr($hex,2,2));
-            $b = hexdec(substr($hex,4,2));
-        }
-		
-		$ret = ($do_rgb) ? $r.', '.$g.', '.$b : $r.', '.$g.', '.$b.', '.$transparency;
-		
-		return ($raw) ? $ret : 'rgba('.$ret.')';
-    }
-	
-	
-	/**
-	 * returns an object of current system values
-	 **/
-	public function get_system_requirements(){
-		$dir	= wp_upload_dir();
-		$basedir = $this->get_val($dir, 'basedir').'/';
-		$ml		= ini_get('memory_limit');
-		$mlb	= wp_convert_hr_to_bytes($ml);
-		$umf	= ini_get('upload_max_filesize');
-		$umfb	= wp_convert_hr_to_bytes($umf);
-		$pms	= ini_get('post_max_size');
-		$pmsb	= wp_convert_hr_to_bytes($pms);
-		
-		
-		$mlg  = ($mlb >= 268435456) ? true : false;
-		$umfg = ($umfb >= 33554432) ? true : false;
-		$pmsg = ($pmsb >= 33554432) ? true : false;
-		
-		return array(
-			'memory_limit' => array(
-				'has' => size_format($mlb),
-				'min' => size_format(268435456),
-				'good'=> $mlg
-			),
-			'upload_max_filesize' => array(
-				'has' => size_format($umfb),
-				'min' => size_format(33554432),
-				'good'=> $umfg
-			),
-			'post_max_size' => array(
-				'has' => size_format($pmsb),
-				'min' => size_format(33554432),
-				'good'=> $pmsg
-			),
-			'upload_folder_writable'	=> wp_is_writable($basedir),
-			'object_library_writable'	=> wp_image_editor_supports(array('methods' => array('resize', 'save'))),
-			'server_connect'			=> get_option('revslider-connection', false),
-		);
-	}
-	
-	/**
 	 * set the rs_google_font to current date, so that it will be redownloaded
 	 * @before: RevSliderOperations::deleteGoogleFonts();
 	 */
@@ -1390,5 +1219,4 @@ class RevSliderFunctions extends RevSliderData {
 }
 
 //class RevSliderFunctions extends rs_functions {}
-//logConsole( $tpmissiotheme_nav_background_main, "Background" );
 ?>

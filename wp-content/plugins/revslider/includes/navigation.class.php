@@ -70,7 +70,7 @@ class RevSliderNavigation extends RevSliderFunctions {
 	 * Get all Navigations
 	 * @since: 5.0
 	 **/
-	public function get_all_navigations($defaults = true, $raw = false){
+	public function get_all_navigations($defaults = true, $raw = false, $old = false){
 		global $wpdb;
 		
 		$navigations = $wpdb->get_results("SELECT * FROM ".$wpdb->prefix.RevSliderFront::TABLE_NAVIGATIONS, ARRAY_A);
@@ -78,8 +78,8 @@ class RevSliderNavigation extends RevSliderFunctions {
 		if($raw == false){
 			foreach($navigations as $key => $nav){
 				$navigations[$key]['factory']	= false;
-				$navigations[$key]['css']		= stripslashes($navigations[$key]['css']);
-				$navigations[$key]['markup']	= stripslashes($navigations[$key]['markup']);
+				$navigations[$key]['css']		= ($old === true) ? $navigations[$key]['css'] : stripslashes($navigations[$key]['css']);
+				$navigations[$key]['markup']	= ($old === true) ? $navigations[$key]['markup'] : stripslashes($navigations[$key]['markup']);
 				
 				if(isset($navigations[$key]['settings'])){
 					$navigations[$key]['settings'] = RevSliderFunctions::stripslashes_deep(json_decode($navigations[$key]['settings'], true));
@@ -123,7 +123,6 @@ class RevSliderNavigation extends RevSliderFunctions {
 								}
 							}
 						}
-						
 					}
 				}
 				$navigations = array_merge($navigations, $def);
@@ -379,31 +378,6 @@ class RevSliderNavigation extends RevSliderFunctions {
 	
 	
 	/**
-	 * change rgb, rgba and hex to rgba like 120,130,50,0.5 (no () and rgb/rgba)
-	 * @since: x.x.x
-	 **/
-	public function convert_any_rgb_or_rgba($css, $type){
-		if(strpos($css, 'rgb') !== false){
-			//$css = explode(')', explode('(', $css)[1])[0];
-			$css_1 = explode('(', $css);
-			$css_2 = explode(')', $css_1[1]);
-			$css = $css_2[0];
-
-		}else{
-			if($type === 'color-rgba'){
-				$css = $this->hex2rgba($css, false, true);
-			}else{
-				$css = $this->hex2rgba($css, false, true, true);
-			}
-		}
-
-		if($type === 'color-rgba' && count(explode(',', $css)) < 4) $css .= ',1';
-
-		return $css;
-	}
-	
-	
-	/**
 	 * Check the CSS for placeholders, replace them with correspinding values
 	 * @since: x.x.x
 	 **/
@@ -414,7 +388,6 @@ class RevSliderNavigation extends RevSliderFunctions {
 		if(!is_array($placeholders)) $placeholders = json_decode($placeholders, true);
 
 		if(isset($placeholders) && is_array($placeholders) && !empty($placeholders)){
-			
 			//first check for media queries, generate more than one staple
 			$marr = $css_class->parse_media_blocks($css);
 			
@@ -441,7 +414,7 @@ class RevSliderNavigation extends RevSliderFunctions {
 
 			$c_css .= $this->preset_return_array_css($c, $placeholders, $slide, $handle, $type, $output);
 		}
-
+		
 		return $c_css;
 	}
 	
@@ -455,18 +428,14 @@ class RevSliderNavigation extends RevSliderFunctions {
 		$array_css = array();
 		
 		if(!empty($c)){
-			foreach($placeholders as $ph){
-				if(empty($ph)) continue;
-				if($ph['nav-type'] !== $type) continue;
-				
-				foreach($ph['data'] as $k => $d){
-					$get_from = $slide->get_param(array('nav', $type, 'presets', 'ph-'.$handle.'-'.$type.'-'.$ph['handle'].'-'.$k.'-slide'), 'off');
-					if($get_from == 'on'){ //get from Slide
+			if(!empty($placeholders)){
+				foreach($placeholders as $k => $d){
+					if($slide->get_param(array('nav', $type, 'presets', $k.'-def'), false) === true){ //get from Slide
 						foreach($c as $class => $styles){
 							foreach($styles as $name => $val){
-								if(strpos($val, '##'.$ph['handle'].'##') !== false){
-									$e = $this->check_css_convert($slide->get_param(array('nav', $type, 'presets', 'ph-'.$handle.'-'.$type.'-'.$ph['handle'].'-'.$k), $ph['type']));
-									$array_css[$class][$name] = str_replace('##'.$ph['handle'].'##', $e, $val);
+								if(strpos($val, '##'.$k.'##') !== false){
+									$e = $slide->get_param(array('nav', $type, 'presets', $k));
+									$array_css[$class][$name] = str_replace('##'.$k.'##', $e, $val);
 								}
 							}
 						}
@@ -479,12 +448,18 @@ class RevSliderNavigation extends RevSliderFunctions {
 					if(!empty($styles)){
 						//class needs to get current slider and slide id
 						$slide_id = $slide->get_id();
-						if($slide->get_param('slide_id','') !== '') $slide_id = esc_attr($slide_id);
-						
 						$class = str_replace('.'.$handle, '#'.$output->get_html_id().'[data-slideactive="rs-'.$slide_id.'"] .'.$handle, $class);
 						
 						$c_css .= $class.'{'."\n";
 						foreach($styles as $style => $value){
+							//check if there are still defaults that needs to be replaced
+							if(strpos($value, '##') !== false){
+								foreach($placeholders as $k => $d){
+									if(strpos($value, '##'.$k.'##') !== false){
+										$value = str_replace('##'.$k.'##', $d['data'], $value);
+									}
+								}
+							}
 							$c_css .= $style.': '.$value.' !important;'."\n";
 						}
 						$c_css .= '}'."\n";
@@ -502,7 +477,6 @@ class RevSliderNavigation extends RevSliderFunctions {
 	 * @since: 5.2.0
 	 **/
 	public function add_preset($data){
-		
 		if(!isset($data['navigation'])) return false;
 		
 		$navs = $this->get_all_navigations();
@@ -522,7 +496,6 @@ class RevSliderNavigation extends RevSliderFunctions {
 							}
 						}
 					}
-					
 					
 					//we want to add the preset somewhere
 					$overwrite = false;

@@ -77,7 +77,7 @@ class RevSliderPageTemplate {
 	// Adds our template to the new post templates setting (WP >= 4.7)
 	public function register_project_templates_new( $post_templates ) {
 	    
-	    $post_templates = array_merge( $post_templates, $this->templates );
+		$post_templates = array_merge( $post_templates, $this->templates );
 	 
 	    return $post_templates;
 	}

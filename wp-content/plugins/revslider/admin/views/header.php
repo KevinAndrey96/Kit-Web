@@ -37,13 +37,13 @@ $rs_color_picker_presets = RSColorpicker::get_color_presets();
 <script type="text/javascript">
 	window.RVS = window.RVS === undefined ? {F:{}, C:{}, ENV:{}, LIB:{}, V:{}, S:{}, DOC:jQuery(document), WIN:jQuery(window)} : window.RVS;
 	
-	RVS.LIB.ADDONS = RVS.LIB.ADDONS === undefined ? {} : RVS.LIB.ADDONS;	
+	RVS.LIB.ADDONS			= RVS.LIB.ADDONS === undefined ? {} : RVS.LIB.ADDONS;	
 	RVS.LIB.ADDONS			= jQuery.extend(true,RVS.LIB.ADDONS,<?php echo (!empty($rs_addons)) ? 'jQuery.parseJSON('.$rsaf->json_encode_client_side($rs_addons).')' : '{}'; ?>);	
 	RVS.LIB.OBJ 			= {types: jQuery.parseJSON(<?php echo $rsaf->json_encode_client_side($rsa); ?>)};
 	RVS.LIB.SLIDERS			= <?php echo json_encode(RevSliderSlider::get_sliders_short_list()); ?>;
-	RVS.LIB.COLOR_PRESETS	= <?php echo (!empty($rs_color_picker_presets)) ? 'jQuery.parseJSON('. $rsaf->json_encode_client_side($rs_color_picker_presets) .')' : '[]'; ?>;
+	RVS.LIB.COLOR_PRESETS	= <?php echo (!empty($rs_color_picker_presets)) ? 'jQuery.parseJSON('. $rsaf->json_encode_client_side($rs_color_picker_presets) .')' : '{}'; ?>;
 
-	RVS.ENV.addOns_to_update = <?php echo (!empty($rs_addon_update)) ? 'jQuery.parseJSON('.$rsaf->json_encode_client_side($rs_addon_update).');' : '{};'; ?>
+	RVS.ENV.addOns_to_update = <?php echo (!empty($rs_addon_update)) ? 'jQuery.parseJSON('.$rsaf->json_encode_client_side($rs_addon_update).')' : '{}'; ?>;
 	RVS.ENV.activated		= '<?php echo (get_option('revslider-valid', 'false')) == 'true' ? 'true' : 'false'; ?>';
 	RVS.ENV.activated = RVS.ENV.activated=='true'  || RVS.ENV.activated==true ? true : false;
 	RVS.ENV.nonce			= '<?php echo wp_create_nonce('revslider_actions'); ?>';

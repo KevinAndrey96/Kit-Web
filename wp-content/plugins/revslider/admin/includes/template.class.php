@@ -107,11 +107,11 @@ class RevSliderTemplate extends RevSliderFunctions {
 		// Get latest Templates
 		if(time() - $last_check > 345600 || $force == true){ //4 days
 			
-			update_option('revslider-templates-check',  time());
+			update_option('revslider-templates-check', time());
 
 			$hash = get_option('revslider-templates-hash', '');
-			$code	= (get_option('revslider-valid', 'false') == 'false') ? '' : get_option('revslider-code', '');
-			$data	= array(
+			$code = (get_option('revslider-valid', 'false') == 'false') ? '' : get_option('revslider-code', '');
+			$data = array(
 				'code'		=> urlencode($code),
 				'shop_version' => urlencode(self::SHOP_VERSION),
 				'hash'		=> urlencode($hash),
@@ -620,7 +620,7 @@ class RevSliderTemplate extends RevSliderFunctions {
 						unset($installed['id']);
 						
 						$defaults[$key]['alias']	 = $defaults[$key]['alias']; //.'-template'
-						$defaults[$key] = array_merge($defaults[$key], $installed);
+						$defaults[$key]				 = array_merge($defaults[$key], $installed);
 						$defaults[$key]['installed'] = $id;
 						$defaults[$key]['img']		 = $this->_check_file_path($slider['img'], true, false);
 						$defaults[$key]['version']	 = $slider['version'];
@@ -684,7 +684,8 @@ class RevSliderTemplate extends RevSliderFunctions {
 					}
 				}
 				
-				$defaults[$dk]['img'] = $this->_check_file_path($defaults[$dk]['img'], true, false);
+				//$defaults[$dk]['img'] = $this->_check_file_path($defaults[$dk]['img'], true, false);
+				$defaults[$dk]['img'] = $defaults[$dk]['img'];
 				$tags	= $defaults[$dk]['filter'];
 				$tags[]	= $defaults[$dk]['cat'];
 				$defaults[$dk]['tags'] = $tags;

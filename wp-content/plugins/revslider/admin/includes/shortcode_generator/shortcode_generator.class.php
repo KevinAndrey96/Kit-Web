@@ -74,31 +74,13 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 			wp_enqueue_script('revslider-elementor', RS_PLUGIN_URL . 'admin/assets/js/shortcode_generator/elementor.js', array('jquery'), RS_REVISION, true);
 		}
 		
-		?>
+		$output_class = new RevSliderOutput();
+		$output_class->add_inline_double_jquery_error(true);
+		echo RevSliderFront::js_set_start_size();
 		
-		<script type="text/javascript">
-			if(typeof revslider_showDoubleJqueryError === 'undefined'){
-				function revslider_showDoubleJqueryError(sliderID){
-					var err = "<div class=\'rs_error_message_box\'>\n";
-					err += "<div class=\'rs_error_message_oops\'>Oops...</div>\n";
-					err += "<div class=\'rs_error_message_content\'>\n";
-					err += "You have some jquery.js library include that comes after the Slider Revolution files js inclusion.<br>\n";
-					err += "To fix this, you can:<br>&nbsp;&nbsp;&nbsp; 1. Set \'Module General Options\' ->  \'jQuery & OutPut Filters\' -> \'Put JS to Body\' to on\n";
-					err += "<br>&nbsp;&nbsp;&nbsp; 2. Find the double jQuery.js inclusion and remove it\n";
-					err += "</div>\n";
-					err += "</div>\n";
-					jQuery(sliderID).show().html(err);
-				}
-			}
-
-			if(typeof setREVStartSize === "undefined") function setREVStartSize(i){try{var n;if(i.mh=void 0===i.mh||""==i.mh?0:i.mh,"fullscreen"===i.l)n=Math.max(i.mh,window.innerHeight);else{var e=new Array(i.rl.length);for(var r in i.rl)e[r]=i.rl[r]<window.innerWidth?0:i.rl[r];n=Math.min(Math.min.apply(Math,e),Math.max.apply(Math,i.rl)),n=0===n?Math.max.apply(Math,i.rl):n;var t=i.rl.findIndex(function(i){return i===n}),a=Math.min(1,window.innerWidth/i.rl[t]);n=Math.max(i.mh,i.gh[t]*a),n=void 0!==i.el&&void 0!==i.el[t]?Math.max(n,i.el[t]*a):n}void 0===window.rs_init_css&&(window.rs_init_css=document.head.appendChild(document.createElement("style"))),window.rs_init_css.innerHTML+=i.c+"_wrapper { height: "+n+"px }"}catch(i){console.log("Failure at Presize of Slider:"+i)}};	
-		</script>
-		<?php
-		$dev_mode = false;
+		$dev_mode = (!file_exists(RS_PLUGIN_PATH.'admin/assets/js/plugins/utils.min.js') && !file_exists(RS_PLUGIN_PATH.'admin/assets/js/modules/editor.min.js')) ? true : false;
 	
-		if(!file_exists(RS_PLUGIN_PATH.'admin/assets/js/plugins/utils.min.js') && !file_exists(RS_PLUGIN_PATH.'admin/assets/js/modules/editor.min.js')) $dev_mode = true;
-	
-		if($dev_mode==true){			
+		if($dev_mode === true){			
 			wp_enqueue_script('revbuilder-basics', RS_PLUGIN_URL . 'admin/assets/js/modules/basics.js', array('jquery'), RS_REVISION, false);			
 			wp_enqueue_script('revbuilder-select2RS', RS_PLUGIN_URL . 'admin/assets/js/plugins/select2RS.full.min.js', array('jquery'), RS_REVISION, false);				
 			wp_enqueue_script('revbuilder-color-picker-js', RS_PLUGIN_URL . 'admin/assets/js/plugins/tp-color-picker.min.js', array('jquery', 'revbuilder-select2RS', 'wp-color-picker'), RS_REVISION);
@@ -173,7 +155,6 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 		
 		$favs = get_option('rs_favorite', array());
 		$favs = !empty($favs) ? $rsaf->json_encode_client_side($favs) : false;
-		
 		?>
 
 		<div id="rb_modal_underlay" style="display:none"></div>
@@ -184,7 +165,7 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 			
 			var RS_DEFALIAS,
 				RS_SHORTCODE_FAV;
-						
+			
 			RVS.ENV.plugin_url = '<?php echo RS_PLUGIN_URL; ?>'; 
 			RVS.ENV.plugin_dir = 'revslider';
 			RVS.ENV.admin_url = '<?php echo admin_url('admin.php?page=revslider'); ?>';
@@ -193,7 +174,7 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 			window.addEventListener('load', function(){
 				<?php if(!empty($rsa)){ ?>
 				RVS.LIB.OBJ = {shortcode_generator: true, types: jQuery.parseJSON(<?php echo $obj; ?>)};
-				<?php } else { ?>
+				<?php }else{ ?>
 				RVS.LIB.OBJ = {};
 				<?php } 
 				if(!empty($favs)){ ?>

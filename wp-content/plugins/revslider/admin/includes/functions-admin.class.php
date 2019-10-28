@@ -112,10 +112,8 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 		
 		$template = new RevSliderTemplate();
 		$library = new RevSliderObjectLibrary();
-		
 		$sliders = $this->get_slider_overview();
-		$svgs	 = $library->get_svg_sets_full();
-		$objects_raw = $library->load_objects();
+		
 		
 		$slider_cat = array();
 		if(!empty($sliders)){
@@ -242,7 +240,9 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 	 * create a page with revslider shortcodes included
 	 * @before: RevSliderOperations::create_slider_page();
 	 **/
-	public static function create_slider_page($added){
+	public static function create_slider_page($added, $modals = array()){
+		global $wp_version;
+		
 		$new_page_id = 0;
 		
 		if(!is_array($added)) return apply_filters('revslider_create_slider_page', $new_page_id, $added);
@@ -257,11 +257,24 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 				$slider->init_by_id($sid);
 				$alias = $slider->get_alias();
 				if($alias !== ''){
-					$title = $slider->get_title();
-					$content .= '<!-- wp:themepunch/revslider {"checked":true} -->'."\n";
-					$content .= '<div class="wp-block-themepunch-revslider revslider" data-modal="false" data-slidertitle="'.$title.'">';
-					$content .= '[rev_slider alias="'.$alias.'"][/rev_slider]'; //this way we will reorder as last comes first
-					$content .= '</div>'."\n".'<!-- /wp:themepunch/revslider -->'."\n";
+					$usage = (in_array($sid, $modals, true)) ? ' usage="modal"' : '';
+					
+					if(version_compare($wp_version, '5.0', '>=')){ //add gutenberg code
+						$ov_data = $slider->get_overview_data();
+						$title	 = $slider->get_val($ov_data, 'title', '');
+						$_title  = ($title !== '') ? ' data-slidertitle="'.$title.'"' : '';
+						$img	 = $slider->get_val($ov_data, array('bg', 'src'), '');
+						$_img	 = ($img !== '') ? ',"sliderImage":"'.$img.'"' : '';
+						
+						$content .= '<!-- wp:themepunch/revslider {"checked":true'.$_img.'} -->'."\n";
+						$content .= '<div class="wp-block-themepunch-revslider revslider" data-modal="false"'.$_title.'>';
+					}
+					
+					$content .= '[rev_slider alias="'.$alias.'"'.$usage.'][/rev_slider]'; //this way we will reorder as last comes first
+					
+					if(version_compare($wp_version, '5.0', '>=')){ //add gutenberg code
+						$content .= '</div>'."\n".'<!-- /wp:themepunch/revslider -->'."\n";
+					}
 				}
 			}
 		}
@@ -400,6 +413,47 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 		}
 		
 		return $done;
+	}
+	
+	
+	/**
+	 * returns an object of current system values
+	 **/
+	public function get_system_requirements(){
+		$dir	= wp_upload_dir();
+		$basedir = $this->get_val($dir, 'basedir').'/';
+		$ml		= ini_get('memory_limit');
+		$mlb	= wp_convert_hr_to_bytes($ml);
+		$umf	= ini_get('upload_max_filesize');
+		$umfb	= wp_convert_hr_to_bytes($umf);
+		$pms	= ini_get('post_max_size');
+		$pmsb	= wp_convert_hr_to_bytes($pms);
+		
+		
+		$mlg  = ($mlb >= 268435456) ? true : false;
+		$umfg = ($umfb >= 33554432) ? true : false;
+		$pmsg = ($pmsb >= 33554432) ? true : false;
+		
+		return array(
+			'memory_limit' => array(
+				'has' => size_format($mlb),
+				'min' => size_format(268435456),
+				'good'=> $mlg
+			),
+			'upload_max_filesize' => array(
+				'has' => size_format($umfb),
+				'min' => size_format(33554432),
+				'good'=> $umfg
+			),
+			'post_max_size' => array(
+				'has' => size_format($pmsb),
+				'min' => size_format(33554432),
+				'good'=> $pmsg
+			),
+			'upload_folder_writable'	=> wp_is_writable($basedir),
+			'object_library_writable'	=> wp_image_editor_supports(array('methods' => array('resize', 'save'))),
+			'server_connect'			=> get_option('revslider-connection', false),
+		);
 	}
 	
 }

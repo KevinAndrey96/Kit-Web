@@ -11,19 +11,24 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	
 	private $library_list		= 'library.php';
 	private $library_download	= 'download.php';
-	
 	private $object_thumb_path	= '/revslider/objects/thumbs/';
 	private $object_orig_path	= '/revslider/objects/';
 	private $sizes				= array('75', '50', '25', '10');
 	private $curl_check			= null;
 	private $font_icon_paths;
+	public	$upload_dir;
 	public	$allowed_types		= array('thumb', 'video', 'video_thumb');
 	
 	const LIBRARY_VERSION		= '2.0.0';
 	
 	
 	public function __construct(){
-		$this->font_icon_paths = array(RS_PLUGIN_PATH.'public/assets/fonts/font-awesome/css/font-awesome.css', RS_PLUGIN_PATH.'public/assets/fonts/pe-icon-7-stroke/css/pe-icon-7-stroke.css');
+		$this->upload_dir = wp_upload_dir();
+		
+		$this->font_icon_paths = array(
+			RS_PLUGIN_PATH.'public/assets/fonts/font-awesome/css/font-awesome.css',
+			RS_PLUGIN_PATH.'public/assets/fonts/pe-icon-7-stroke/css/pe-icon-7-stroke.css'
+		);
 		$this->font_icon_paths = apply_filters('revslider_object_library_icon_paths', $this->font_icon_paths);
 	}
 	
@@ -76,18 +81,17 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	
 	
 	public function _get_object_data($object_handle){
-		$data		= array('thumb' => false, 'orig' => false);
-		$upload_dir	= wp_upload_dir(); // Set upload folder
+		$data = array('thumb' => false, 'orig' => false);
+
+		$file = $this->upload_dir['basedir'] . $this->object_thumb_path . $object_handle;
+		/*if(file_exists($file)){
+			$data['thumb'] = $this->upload_dir['baseurl'] . $this->object_thumb_path . $object_handle;
+		}*/
 		
-		$file = $upload_dir['basedir'] . $this->object_thumb_path . $object_handle;
-		if(file_exists($file)){
-			$data['thumb'] = $upload_dir['baseurl'] . $this->object_thumb_path . $object_handle;
-		}
-		
-		$file = $upload_dir['basedir'] . $this->object_orig_path . $object_handle;
-		if(file_exists($file)){
-			$data['orig'] = $upload_dir['baseurl'] . $this->object_orig_path . $object_handle;
-		}
+		$file = $this->upload_dir['basedir'] . $this->object_orig_path . $object_handle;
+		/*if(file_exists($file)){
+			$data['orig'] = $this->upload_dir['baseurl'] . $this->object_orig_path . $object_handle;
+		}*/
 		
 		return $data;
 	}
@@ -99,8 +103,7 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	 */
 	public function _is_object($url){
 		$is_object	= false;
-		$upload_dir	= wp_upload_dir(); // Set upload folder
-		$upload_url	= $upload_dir['baseurl'] . $this->object_orig_path;
+		$upload_url	= $this->upload_dir['baseurl'] . $this->object_orig_path;
 		$file_name	= explode('/', $url);
 		$file_name	= $file_name[count($file_name) - 1];
 		
@@ -126,10 +129,9 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	 * @since: 5.3.0
 	 */
 	public function _does_exist($url){
-		$upload_dir	= wp_upload_dir(); // Set upload folder
-		$url		= str_replace($upload_dir['baseurl'] . $this->object_orig_path, '', $url);
+		$url = str_replace($this->upload_dir['baseurl'] . $this->object_orig_path, '', $url);
 		
-		return (file_exists($upload_dir['basedir'] . $this->object_orig_path . $url)) ? true : false;
+		return (file_exists($this->upload_dir['basedir'] . $this->object_orig_path . $url)) ? true : false;
 	}
 	
 	
@@ -189,14 +191,12 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 			$object_handle = str_replace('.jpg', '.mp4', $object_handle);
 		}
 		
-		$rslb		= new RevSliderLoadBalancer();
 		$error		= '';
 		$path		= (in_array($type, $this->allowed_types, true)) ? $this->object_thumb_path : $this->object_orig_path;
 		
 		$_download	= false;
-		$upload_dir	= wp_upload_dir(); // Set upload folder
-		$file		= $upload_dir['basedir'] . $path . $object_handle;
-		$url_file	= $upload_dir['baseurl'] . $path . $object_handle;
+		$file		= $this->upload_dir['basedir'] . $path . $object_handle;
+		$url_file	= $this->upload_dir['baseurl'] . $path . $object_handle;
 		$validated	= get_option('revslider-valid', 'false');
 		
 		//check if object thumb is already downloaded
@@ -207,9 +207,9 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		}
 		
 		// Check folder permission and define file location
-		if($_download && wp_mkdir_p($upload_dir['basedir'].$path) && $download === true){
+		if($_download && $download === true && wp_mkdir_p($this->upload_dir['basedir'].$path)){
 			$curl = ($this->check_curl_connection()) ? new WP_Http_Curl() : false;
-			$file = $upload_dir['basedir'] . $path . $object_handle;
+			$file = $this->upload_dir['basedir'] . $path . $object_handle;
 			
 			if(!is_file($file)){
 				$image_data = false;
@@ -218,6 +218,7 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 					if($validated == 'false' && !in_array($type, $this->allowed_types, true)){
 						$error = __('Plugin not activated', 'revslider');
 					}else{
+						$rslb	= new RevSliderLoadBalancer();
 						$code	= ($validated == 'false') ? '' : get_option('revslider-code', '');
 						$rattr	= array(
 							'library_version' => urlencode(self::LIBRARY_VERSION),
@@ -374,10 +375,9 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	 * @since: 5.3.0
 	 */
 	public function _import_object($file_path){
-		$upload_dir	= wp_upload_dir(); // Set upload folder
 		$obj_handle = basename($file_path);
-		$file		= $upload_dir['basedir'] . $this->object_orig_path . $obj_handle;
-		$url_file	= $upload_dir['baseurl'] . $this->object_orig_path . $obj_handle;
+		$file		= $this->upload_dir['basedir'] . $this->object_orig_path . $obj_handle;
+		$url_file	= $this->upload_dir['baseurl'] . $this->object_orig_path . $obj_handle;
 		
 		$image_handle = @fopen($file_path, 'r');
 		
@@ -468,11 +468,18 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 				$objects[$key]['title'] = $this->get_val($obj, 'name');
 				unset($objects[$key]['name']);
 				
-				$img = $this->_get_object_data($this->get_val($obj, 'handle'));
-				//$objects[$key]['img'] = $this->get_val($img, 'thumb', '');
-				$objects[$key]['img'] = $this->_get_object_thumb($this->get_val($obj, 'handle'), $t);
+				//$img = $this->_get_object_data($this->get_val($obj, 'handle'));
+				$img = $this->get_val($obj, 'handle');
+				//$objects[$key]['img'] = $this->_get_object_thumb($this->get_val($obj, 'handle'), $t);
+				$objects[$key]['img'] = $this->get_val($obj, 'handle');
 				if($type == '3' || $type == '4'){
-					$objects[$key]['video_thumb'] = $this->_get_object_thumb($this->get_val($obj, 'video'), 'video_thumb');
+					//$objects[$key]['video_thumb'] = $this->_get_object_thumb($this->get_val($obj, 'video'), 'video_thumb');
+					$objects[$key]['video_thumb'] = array(
+						'error' => false,
+						'url'	=> $this->get_val($obj, 'video'),
+						'width' => false,
+						'height' => false
+					);
 				}
 				
 				$objects[$key]['orig'] = $this->get_val($img, 'orig', '');
@@ -556,8 +563,7 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 			return false;
 		}
 		
-		$upload_dir		= wp_upload_dir(); // Set upload folder
-		$upload_directory = $upload_dir['basedir'] . $this->object_orig_path;
+		$upload_directory = $this->upload_dir['basedir'] . $this->object_orig_path;
 		$image_path		= $upload_directory.$handle;
 
 		$file_name_we	= explode('/', $image_path);
@@ -614,9 +620,8 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	 */
 	public function get_correct_size_url($image_id, $size){
 		$object_handle	= $this->get_object_handle_by_id($image_id);
-		$upload_dir		= wp_upload_dir(); // Set upload folder
-		$image_path		= $upload_dir['basedir'] . $this->object_orig_path . $object_handle;
-		$image_url		= $upload_dir['baseurl'] . $this->object_orig_path;
+		$image_path		= $this->upload_dir['basedir'] . $this->object_orig_path . $object_handle;
+		$image_url		= $this->upload_dir['baseurl'] . $this->object_orig_path;
 		
 		if(!file_exists($image_path)) return '';
 		if(!in_array($size, $this->sizes)) return '';
@@ -665,9 +670,8 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 			//check if file exists
 			if(!file_exists($image_path)) return $image_path;
 			
-			$upload_dir				  = wp_upload_dir(); // Set upload folder
-			$upload_directory         = $upload_dir['basedir'] . $this->object_orig_path;
-			$upload_url         	  = $upload_dir['baseurl'] . $this->object_orig_path;
+			$upload_directory         = $this->upload_dir['basedir'] . $this->object_orig_path;
+			$upload_url         	  = $this->upload_dir['baseurl'] . $this->object_orig_path;
 			
 			//we got width and high, lets check which one to use
 			$file_name_with_ending    = explode("/", $image_path);
@@ -737,9 +741,9 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 				$data['list']['png'] = array();				
 
 				foreach($online as $online_file){
-					$my_data	= $this->_get_object_data($online_file['handle']);
-					$my_tags	= array();
-					$group		= 'image';
+					$my_data = $this->_get_object_data($online_file['handle']);
+					$my_tags = array();
+					$group	 = 'image';
 					if($online_file['type'] === '2') $group = 'bgimage';
 					if(isset($online_file['tags']) && !empty($online_file['tags'])){
 						foreach($online_file['tags'] as $t){
@@ -749,14 +753,14 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 						}
 					}
 					$data['list']['png'][] = array(
-						'src'		=> $my_data['thumb'],
-						'origsrc'	=> $my_data['orig'],
-						'type'		=> $online_file['type'],
-						'group'		=> $group,
-						'width'		=> $online_file['width'],
-						'height'	=> $online_file['height'],
-						'tags'		=> implode(',', $my_tags),
-						'name'		=> $online_file['name']
+						'src'	 => $my_data['thumb'],
+						'origsrc' => $my_data['orig'],
+						'type'	 => $online_file['type'],
+						'group'	 => $group,
+						'width'	 => $online_file['width'],
+						'height' => $online_file['height'],
+						'tags'	 => implode(',', $my_tags),
+						'name'	 => $online_file['name']
 					);
 				}
 			}
@@ -796,29 +800,28 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		$url	= RS_PLUGIN_URL . 'public/assets/assets/svg/';
 		
 		if(!file_exists($path.'action/ic_3d_rotation_24px.svg')){ //the path needs to be changed to the uploads folder then
-			$upload_dir = wp_upload_dir();
-			$path	= $upload_dir['basedir'].'/revslider/assets/svg/';
-			$url	= $upload_dir['baseurl'].'/revslider/assets/svg/';
+			$path	= $this->upload_dir['basedir'].'/revslider/assets/svg/';
+			$url	= $this->upload_dir['baseurl'].'/revslider/assets/svg/';
 		}
 		
 		//search in each folder that is in $path for subfolder
 		
-		$svg_sets['Actions']		= array('path' => $path.'action/', 'url' => $url.'action/');
-		$svg_sets['Alerts']			= array('path' => $path.'alert/', 'url' => $url.'alert/');
-		$svg_sets['AV']				= array('path' => $path.'av/', 'url' => $url.'av/');
-		$svg_sets['Communication']	= array('path' => $path.'communication/', 'url' => $url.'communication/');
-		$svg_sets['Content']		= array('path' => $path.'content/', 'url' => $url.'content/');
-		$svg_sets['Device']			= array('path' => $path.'device/', 'url' => $url.'device/');
-		$svg_sets['Editor']			= array('path' => $path.'editor/', 'url' => $url.'editor/');
-		$svg_sets['File']			= array('path' => $path.'file/', 'url' => $url.'file/');
-		$svg_sets['Hardware']		= array('path' => $path.'hardware/', 'url' => $url.'hardware/');
-		$svg_sets['Images']			= array('path' => $path.'image/', 'url' => $url.'image/');
-		$svg_sets['Maps']			= array('path' => $path.'maps/', 'url' => $url.'maps/');
-		$svg_sets['Navigation']		= array('path' => $path.'navigation/', 'url' => $url.'navigation/');
-		$svg_sets['Notifications']	= array('path' => $path.'notification/', 'url' => $url.'notification/');
-		$svg_sets['Places']			= array('path' => $path.'places/', 'url' => $url.'places/');
-		$svg_sets['Social']			= array('path' => $path.'social/', 'url' => $url.'social/');
-		$svg_sets['Toggle']			= array('path' => $path.'toggle/', 'url' => $url.'toggle/');
+		$svg_sets['Actions']	= array('path' => $path.'action/', 'url' => $url.'action/');
+		$svg_sets['Alerts']		= array('path' => $path.'alert/', 'url' => $url.'alert/');
+		$svg_sets['AV']			= array('path' => $path.'av/', 'url' => $url.'av/');
+		$svg_sets['Communication'] = array('path' => $path.'communication/', 'url' => $url.'communication/');
+		$svg_sets['Content']	= array('path' => $path.'content/', 'url' => $url.'content/');
+		$svg_sets['Device']		= array('path' => $path.'device/', 'url' => $url.'device/');
+		$svg_sets['Editor']		= array('path' => $path.'editor/', 'url' => $url.'editor/');
+		$svg_sets['File']		= array('path' => $path.'file/', 'url' => $url.'file/');
+		$svg_sets['Hardware']	= array('path' => $path.'hardware/', 'url' => $url.'hardware/');
+		$svg_sets['Images']		= array('path' => $path.'image/', 'url' => $url.'image/');
+		$svg_sets['Maps']		= array('path' => $path.'maps/', 'url' => $url.'maps/');
+		$svg_sets['Navigation']	= array('path' => $path.'navigation/', 'url' => $url.'navigation/');
+		$svg_sets['Notifications'] = array('path' => $path.'notification/', 'url' => $url.'notification/');
+		$svg_sets['Places']		= array('path' => $path.'places/', 'url' => $url.'places/');
+		$svg_sets['Social']		= array('path' => $path.'social/', 'url' => $url.'social/');
+		$svg_sets['Toggle']		= array('path' => $path.'toggle/', 'url' => $url.'toggle/');
 		
 		return apply_filters('revslider_get_svg_sets', $svg_sets);
 	}

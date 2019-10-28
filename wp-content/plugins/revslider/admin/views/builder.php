@@ -221,6 +221,7 @@ require_once(RS_PLUGIN_PATH . 'admin/views/modals-copyright.php');
 
 								<!-- SLIDER "UL" -->
 								<div id="rev_slider_ul" data-multiplemark="false" data-forms='["#form_sliderlayout"]'>
+									<canvas id="gridcanvas"></canvas>
 									<div id="rev_slider_ul_inner">
 
 										<!-- SLIDER OVERLAY -->
@@ -246,19 +247,19 @@ require_once(RS_PLUGIN_PATH . 'admin/views/modals-copyright.php');
 										<!-- END OF CAROUSEL FAKES -->
 
 										<!-- PROGRESS BAR -->
-										<div id="rev_progress_bar_wrap" class="aable markable" data-multiplemark="false" data-forms='["*navlayout*#gst_nav_1"]'></div><!-- END OF PROGRESS BAR-->
+										<div id="rev_progress_bar_wrap" class="aable markable" data-multiplemark="false" data-collapse="true" data-forms='["*navlayout*#orm_nav_pbara"]'></div><!-- END OF PROGRESS BAR-->
 
 										<!-- NAVIGATION ARROWS -->
-										<div id="tp-rightarrow" class="aable markable tp-rightarrow tparrows" data-forms='["*navlayout*#gst_nav_2"]'></div>
-										<div id="tp-leftarrow" class="aable markable tp-leftarrow tparrows" data-forms='["*navlayout*#gst_nav_2"]'></div>
+										<div id="tp-rightarrow" class="aable markable tp-rightarrow tparrows" data-collapse="true" data-forms='["*navlayout*#form_nav_arrows"]'></div>
+										<div id="tp-leftarrow" class="aable markable tp-leftarrow tparrows" data-collapse="true" data-forms='["*navlayout*#form_nav_arrows"]'></div>
 										<!-- END OF NAVGATION ARROWS-->
 
 										<!-- NAVIGATION BULLETS -->
-										<div id="tp-bullets" class="aable markable tp-bullets" data-forms='["*navlayout*#gst_nav_3"]'></div>
+										<div id="tp-bullets" class="aable markable tp-bullets" data-collapse="true" data-forms='["*navlayout*#form_nav_bullets"]'></div>
 										<!-- END OF NAVIGATION BULLETS-->
 
 										<!-- NAVIGATION TABS -->
-										<div id="tp-tabs" class="aable markable tp-tabs" data-forms='["*navlayout*#gst_nav_4"]'>
+										<div id="tp-tabs" class="aable markable tp-tabs" data-collapse="true" data-forms='["*navlayout*#form_nav_tabs"]'>
 											<div id="tp-tabs-mask" class="tp-tabs-mask">
 												<div id="tp-tabs-inner-wrapper" class="tp-tabs-inner-wrapper"></div>
 											</div>
@@ -266,7 +267,7 @@ require_once(RS_PLUGIN_PATH . 'admin/views/modals-copyright.php');
 										<!-- END OF NAVIGATION TABS-->
 
 										<!-- NAVIGATION THUMBS -->
-										<div id="tp-thumbs" class="aable markable tp-thumbs" data-forms='["*navlayout*#gst_nav_5"]'>
+										<div id="tp-thumbs" class="aable markable tp-thumbs" data-collapse="true" data-forms='["*navlayout*#form_nav_thumbs"]'>
 											<div id="tp-thumbs-mask" class="tp-thumbs-mask">
 												<div id="tp-thumbs-inner-wrapper" class="tp-thumbs-inner-wrapper"></div>
 											</div>

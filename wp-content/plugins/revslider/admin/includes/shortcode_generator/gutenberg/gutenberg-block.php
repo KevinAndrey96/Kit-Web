@@ -24,10 +24,10 @@ if(!class_exists('RevSliderGutenberg')){
 			add_filter('block_categories', array($this, 'create_block_category'), 10, 2);
 			
 			// Hook: Frontend assets.
-			add_action('enqueue_block_assets', array( $this, 'revslider_gutenberg_cgb_block_assets'));
+			add_action('enqueue_block_assets', array($this, 'revslider_gutenberg_cgb_block_assets'));
 			
 			// Hook: Editor assets.
-			add_action('enqueue_block_editor_assets', array( $this, 'revslider_gutenberg_cgb_editor_assets'));
+			add_action('enqueue_block_editor_assets', array($this, 'revslider_gutenberg_cgb_editor_assets'));
 		}
 		
 		/**

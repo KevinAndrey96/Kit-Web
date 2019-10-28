@@ -9,6 +9,8 @@
 
 if(!defined('ABSPATH')) exit();
 
+use InstagramScraper\Instagram;
+
 /**
  * Facebook
  *
@@ -63,13 +65,13 @@ class RevSliderFacebook extends RevSliderFunctions {
 	 * @param	string	$user_id 	Facebook User id (not name)
 	 * @param	int	$item_count 	number of photos to pull
 	 */
-	public function get_photo_sets($user_id, $item_count = 10, $app_id, $app_secret){
+	public function get_photo_sets($user_id, $item_count = 10, $access_token){
 		//photoset params
-		$oauth = wp_remote_fopen('https://graph.facebook.com/oauth/access_token?type=client_cred&client_id='.$app_id.'&client_secret='.$app_secret);
-		$oauth = json_decode($oauth);		
-		$url = 'https://graph.facebook.com/'.$user_id.'/albums?access_token='.$this->get_val($oauth, 'access_token');
+		$url = "https://graph.facebook.com/$user_id/albums?access_token=" . $access_token;
 		$photo_sets_list = json_decode(wp_remote_fopen($url));
-		
+		if(!empty($photo_sets_list->error->message)){
+			return array("error",$photo_sets_list->error->message);
+		}
 		return $this->get_val($photo_sets_list, 'data');
 	}
 
@@ -80,10 +82,8 @@ class RevSliderFacebook extends RevSliderFunctions {
 	 * @param	string	$photo_set_id 	Photoset ID
 	 * @param	int		$item_count 	number of photos to pull
 	 */
-	public function get_photo_set_photos($photo_set_id, $item_count = 10, $app_id, $app_secret){
-		$oauth = wp_remote_fopen('https://graph.facebook.com/oauth/access_token?type=client_cred&client_id='.$app_id.'&client_secret='.$app_secret);
-		$oauth = json_decode($oauth);
-		$url = 'https://graph.facebook.com/'.$photo_set_id.'/photos?fields=photos&access_token='.$this->get_val($oauth, 'access_token').'&fields=id,from,message,picture,link,name,icon,privacy,type,status_type,object_id,application,created_time,updated_time,is_hidden,is_expired,comments.limit(1).summary(true),likes.limit(1).summary(true)';
+	public function get_photo_set_photos($photo_set_id, $item_count = 10, $access_token){
+		$url = "https://graph.facebook.com/".$photo_set_id."/photos?fields=photos&access_token=" . $access_token ."&fields=id,from,message,picture,images,link,name,icon,privacy,type,status_type,application,created_time,updated_time,is_hidden,is_expired,comments.limit(1).summary(true),likes.limit(1).summary(true)";
 
 		$transient_name = 'revslider_' . md5($url);
 
@@ -108,9 +108,14 @@ class RevSliderFacebook extends RevSliderFunctions {
 	 * @param	string	$user_url 	Facebook User id (not name)
 	 * @param	int	$item_count 	number of photos to pull
 	 */
-	public function get_photo_set_photos_options($user_url, $current_album, $app_id, $app_secret, $item_count = 99){
+	public function get_photo_set_photos_options($user_url, $current_album, $access_token, $item_count = 99){
 		$user_id = $this->get_user_from_url($user_url);
-		$photo_sets = $this->get_photo_sets($user_id, 999, $app_id, $app_secret);
+		$photo_sets = $this->get_photo_sets($user_id, 999, $access_token);
+		
+		if(isset( $photo_sets[0] ) && $photo_sets[0] == "error"){
+			return $photo_sets;
+		}
+		
 		if(empty($current_album)) $current_album = '';
 		
 		$return = array();
@@ -130,10 +135,8 @@ class RevSliderFacebook extends RevSliderFunctions {
 	 * @param	string	$user 	User ID
 	 * @param	int		$item_count 	number of itmes to pull
 	 */
-	public function get_photo_feed($user, $app_id, $app_secret, $item_count = 10){
-		$oauth = wp_remote_fopen('https://graph.facebook.com/oauth/access_token?type=client_cred&client_id='.$app_id.'&client_secret='.$app_secret);
-		$oauth = json_decode($oauth);
-		$url = 'https://graph.facebook.com/'.$user.'/feed?access_token='.$this->get_val($oauth, 'access_token').'&fields=id,from,message,picture,link,name,icon,privacy,type,status_type,object_id,application,created_time,updated_time,is_hidden,is_expired,comments.limit(1).summary(true),likes.limit(1).summary(true)';
+	public function get_photo_feed($user, $access_token, $item_count = 10){
+		$url = "https://graph.facebook.com/$user/feed?access_token=" . $access_token ."&fields=full_picture,picture,attachments{media,media_type,url},icon,message,likes.limit(1).summary(true),comments.limit(1).summary(true)";
 
 		$transient_name = 'revslider_' . md5($url);
 		if($this->transient_sec > 0 && false !== ($data = get_transient($transient_name))){
@@ -476,6 +479,18 @@ class RevSliderTwitterApi extends RevSliderFunctions {
  * @author     ThemePunch <info@themepunch.com>
  */
 
+
+if(!function_exists('rev_instagram_autoloader')){
+
+	function rev_instagram_autoloader($class)
+	{
+		if(strpos($class, 'InstagramScraper') !== false || strpos($class, 'Unirest') !== false) {
+			$filename = realpath(dirname(__FILE__)) .'/'. str_replace('\\', '/', $class) . '.php';
+			include_once ($filename);
+		}
+	} 
+}
+
 class RevSliderInstagram  extends RevSliderFunctions {
 
 	/**
@@ -511,100 +526,384 @@ class RevSliderInstagram  extends RevSliderFunctions {
 	 * @since    1.0.0
 	 * @param      string    $api_key	Instagram API key.
 	 */
-	public function __construct($transient_sec=1200){
+	public function __construct($transient_sec = 1200){
+		spl_autoload_register('rev_instagram_autoloader');
 		$this->transient_sec = $transient_sec;
 	}
 
 	/**
-	 * Get Instagram Pictures Public by User
+	 * Get Instagram Users Pictures CSV list
 	 *
-	 * @since    1.0.0
+	 * @since    3.0
 	 * @param    string    $user_id 	Instagram User id (not name)
 	 */
-	public function get_public_photos($search_user_id, $count){
-		if(!empty($search_user_id)){
-			$url = 'https://www.instagram.com/'.$search_user_id.'/?__a=1';
-			$transient_name = 'revslider_' . md5($url);
-			if($this->transient_sec > 0 && false !== ($data = get_transient($transient_name)))
-				return $data;
-
-			$rsp = json_decode(json_encode($this->getFallbackImages($search_user_id)));
-			  
-			for($i=0;$i<$count;$i++){
-				if(isset($rsp->edge_owner_to_timeline_media->edges[$i])){
-					$return[] = $rsp->edge_owner_to_timeline_media->edges[$i];
-				}
+	public function get_users_photos($search_user_id, $count, $orig_image = ''){
+		$search_user_array = explode(',', $search_user_id);
+		if(is_array($search_user_array)){
+			foreach($search_user_array as $search_user){
+				$this->get_public_photos(trim($search_user), $count, $orig_image);
 			}
-
-			if(isset($return)){
-				$rsp->edge_owner_to_timeline_media->edges = $return;
-				set_transient($transient_name, $return, $this->transient_sec);
-				return $return;
-			}
+		}else{
+			$this->get_public_photos(trim($search_user_id), $count, $orig_image);
 		}
 		
-		return '';
+		return $this->stream;
 	}
 
 	/**
-	 * Get user ID if necessary
-	 * @since 5.4.6.3
+	 * Get Instagram User Pictures
+	 *
+	 * @since    3.0
+	 * @param    string    $user_id 	Instagram User id (not name)
 	 */
-	public function get_user_id($search_user_id){
-		// $url = 'https://api.instagram.com/v1/users/search?q='.$search_user_id.'&access_token='.$this->api_key;
-		$url = 'https://www.instagram.com/'.$search_user_id.'/?__a=1';
-
-		// check for transient
-		$transient_name = 'revslider_' . md5($url);
-		if($this->transient_sec > 0 && false !== ($data = get_transient($transient_name)))
-			return ($data);
-
-		// contact API
-		$rsp = json_decode(wp_remote_fopen($url));
-
-		$id = $this->get_val($rsp, array('user', 'id'), '######');
+	public function get_public_photos($search_user_id, $count, $orig_image = ''){
 		
-		// set new transient
-		if($id !== '######')
-			set_transient($transient_name, $id, 604800);
+		//Loads autoloader for Instragram scrapper requirements
 
-		// return user id
-		return ($id !== '######') ? $id : false;
+		if(!empty($search_user_id)){
+			$cacheKey = 'instagram' . '-' . $search_user_id . '-' . $count;
+			
+			$transient_name = 'revslider_'. md5($cacheKey);
+			if($this->transient_sec > 0 && false !== ($data = get_transient($transient_name))){
+				$this->stream = $data;
+				return $this->stream;
+			}
+			else
+				delete_transient($transient_name);
+			
+				//Getting instragram images
+				$instagram = new Instagram();
+				$medias = $instagram->getMedias($search_user_id, $count);
+
+				if($medias != null){
+					$rsp = json_decode(json_encode($medias));
+				}else{
+					//Fallback function 12 photos
+					$rsp = json_decode(json_encode($this->getFallbackImages($search_user_id)));
+				}
+
+				if(isset($rsp->edge_owner_to_timeline_media))
+					$count = $this->instagram_output_array($rsp->edge_owner_to_timeline_media->edges, $count, $search_user_id, $orig_image);
+						
+					if(!empty($this->stream)){
+						set_transient($transient_name, $this->stream, $this->transient_sec);
+						return $this->stream;
+					}else{
+						_e('Instagram reports: Please check the settings','revslider');
+						return false;
+					}
+		}else{
+			_e('Instagram reports: Please check the settings','revslider');
+			return false;
+		}
+
+	}
+	
+	function input($name, $default = null){
+		return isset($_REQUEST[$name]) ? $_REQUEST[$name] : $default;
+	}
+	
+	public function http_request($url, $post = '', $cookies = '', $headers = '', $show_header = true){
+		$ch = @curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_HEADER, $show_header);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		if ($post) {
+			curl_setopt($ch, CURLOPT_POST, 1);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
+		}
+		if ($cookies) {
+			curl_setopt($ch, CURLOPT_COOKIE, $cookies);
+		}
+		if ($headers) {
+			curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+		}
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 20);
+		$page = curl_exec($ch);
+		curl_close($ch);
+		return $page;
+	}
+
+
+
+	/**
+	 * Get Instagram Tags Pictures CSV list
+	 *
+	 * @since    3.0
+	 * @param    string    $user_id 	Instagram User id (not name)
+	 */
+	public function get_tags_photos($search_user_id, $count, $orig_image){
+		$search_user_array = explode(',', $search_user_id);
+		if(is_array($search_user_array)){
+			foreach($search_user_array as $search_user){
+				$this->get_tag_photos(trim($search_user), $count, $orig_image);
+			}
+		}
+		else{
+			$this->get_tag_photos(trim($search_user_id), $count, $orig_image);
+		}
+		return $this->stream;
+	}
+
+	/**
+	 * Get Instagram Tag Pictures
+	 *
+	 * @since    3.0
+	 * @param    string    $user_id 	Instagram User id (not name)
+	 */
+	public function get_tag_photos($search_user_id,$count,$orig_image){
+		if(!empty($search_user_id)){
+
+			$search_user_id = str_replace("#", "", $search_user_id);
+
+			$url = 'https://www.instagram.com/explore/tags/'.$search_user_id.'/?__a=1';
+
+			$transient_name = 'revslider_'. md5($url."count=".$count);
+			
+			if($this->transient_sec > 0 && false !== ($data = get_transient( $transient_name))){
+				$this->stream = $data;
+				return $this->stream;
+			}
+			else
+				delete_transient( $transient_name );
+				
+				$rsp = json_decode(wp_remote_fopen($url));
+
+				$count = $this->instagram_output_array($rsp->graphql->hashtag->edge_hashtag_to_media->edges,$count,$search_user_id,$orig_image);
+
+				if(!$rsp->graphql->hashtag->edge_hashtag_to_media->count){
+					_e('Instagram reports: Please check the settings','revslider');
+					return false;
+				}
+
+				while($count){
+					$url = 'https://www.instagram.com/explore/tags/'.$search_user_id.'/?__a=1&max_id='.$rsp->graphql->hashtag->edge_hashtag_to_media->page_info->end_cursor;
+					$rsp = json_decode(wp_remote_fopen($url));
+					$count = $this->instagram_output_array($rsp->tag->media->nodes,$count,$search_user_id,$orig_image);
+				}
+
+				if(!empty($this->stream)){
+					set_transient( $transient_name, $this->stream, $this->transient_sec );
+					return $this->stream;
+				}else{
+					_e('Instagram reports: Please check the settings','revslider');
+					return false;
+				}
+		}else{
+			_e('Instagram reports: Please check the settings','revslider');
+			return false;
+		}
+
+	}
+
+	/**
+	 * Get Instagram Locations Pictures CSV list
+	 *
+	 * @since    3.0
+	 * @param    string    $user_id 	Instagram User id (not name)
+	 */
+	public function get_places_photos($search_user_id,$count,$orig_image){
+		$search_user_array = explode(",", $search_user_id);
+		if(is_array($search_user_array)){
+			foreach($search_user_array as $search_user){
+				$this->get_place_photos(trim($search_user),$count,$orig_image);
+			}
+		}
+		else {
+			$this->get_place_photos(trim($search_user_id),$count,$orig_image);
+		}
+		return $this->stream;
+	}
+
+	/**
+	 * Get Instagram Location Pictures
+	 *
+	 * @since    3.0
+	 * @param    string    $user_id 	Instagram User id (not name)
+	 */
+	public function get_place_photos($search_user_id,$count,$orig_image){
+		if(!empty($search_user_id)){
+
+			$url = 'https://www.instagram.com/explore/locations/'.$search_user_id.'/?__a=1';
+
+			$transient_name = 'revslider_'. md5($url."count=".$count);
+			if ($this->transient_sec > 0 && false !== ($data = get_transient( $transient_name))){
+				$this->stream = $data;
+				return $this->stream;
+			}
+			else
+				delete_transient( $transient_name );
+					
+				$rsp = json_decode(wp_remote_fopen($url));
+
+				$count = $this->instagram_output_array($rsp->graphql->location->edge_location_to_media->edges,$count,$search_user_id,$orig_image);
+
+				if(!$rsp->graphql->location->edge_location_to_media->count){
+					_e('Instagram reports: Please check the settings','revslider');
+					return false;
+				}
+
+				
+				while($count){
+					$url = 'https://www.instagram.com/explore/locations/'.$search_user_id.'/?__a=1&max_id='.$rsp->graphql->location->edge_location_to_media->page_info->end_cursor;
+					$rsp = json_decode(wp_remote_fopen($url));
+					$count = $this->instagram_output_array($rsp->graphql->location->edge_location_to_media->edges,$count,$search_user_id,$orig_image);
+				}
+					
+				if(!empty($this->stream)){
+					set_transient( $transient_name, $this->stream, $this->transient_sec );
+					return $this->stream;
+				}
+				else {
+					_e('Instagram reports: Please check the settings','revslider');
+					return false;
+				}
+		}
+		else {
+			_e('Instagram reports: Please check the settings','revslider');
+			return false;
+		}
+
+	}
+
+
+	/**
+	 * Prepare output array $stream
+	 *
+	 * @since    3.0
+	 * @param    string    $photos 	Instagram Output Data
+	 */
+	private function instagram_output_array($photos,$count,$search_user_id,$orig_image=""){
+		$this->stream = $photos;
+		
+		foreach ($photos as $photo) {
+			if($count > 0){
+				$count--;
+				$this->stream[] = $photo;
+			}
+		}
+		return $count;
+	}
+
+	/**
+	 * Prepare output array $stream
+	 *
+	 * @since    3.0
+	 * @param    string    $photos 	Instagram Output Data
+	 */
+	private function instagram_output_array_places($photos,$count,$search_user_id,$orig_image=""){
+		foreach ($photos as $photo) {
+			if($count > 0){
+				$count--;
+				$stream = array();
+
+				if($orig_image){
+					$url = 'https://www.instagram.com/p/'.$photo->code.'/?__a=1';
+					$rsp = json_decode(wp_remote_fopen($url));
+					$images = end($rsp->graphql->shortcode_media->display_resources);
+					$orig_image = array( $images->src, $images->config_width, $images->config_height );
+				}
+				else {
+					$orig_image = array('',0,0);
+				}
+
+				$thumbnail_resources = $photo->thumbnail_resources;
+
+				$image_url = array(
+						'Low Resolution' 		=> 	array($thumbnail_resources[2]->src,
+								320,
+								320
+						),
+						'Thumbnail' 			=> 	array($thumbnail_resources[0]->src,
+								150,
+								150
+						),
+						'Standard Resolution' 	=>	array($photo->thumbnail_src,
+								640,
+								640,
+						),
+						'Original Resolution'	=> $orig_image
+				);
+
+				$text = empty($photo->caption) ? '' : $photo->caption;
+
+				$stream['id'] = $photo->id;
+				$stream['custom-image-url'] = $image_url; //image for entry
+
+				if($photo->is_video != "true"){
+					$stream['custom-type'] = 'image'; //image, vimeo, youtube, soundcloud, html
+				}
+				else{
+					$url = 'https://www.instagram.com/p/'.$photo->code.'/?__a=1';
+					$rsp = json_decode(wp_remote_fopen($url));
+					$stream['custom-type'] = 'html5'; //image, vimeo, youtube, soundcloud, html
+					$stream['custom-html5-mp4'] = $rsp->graphql->shortcode_media->video_url;
+				}
+
+				$stream['post-link'] = 'https://www.instagram.com/p/' . $photo->code;
+				$url = '~(?:(https?)://([^\s<]+)|(www\.[^\s<]+?\.[^\s<]+))(?<![\.,:])~i';
+				$text = preg_replace($url, '<a href="$0" target="_blank" title="$0">$0</a>', $text);
+				$stream['title'] = $text;
+				$stream['content'] = $text;
+				$stream['date'] = date_i18n( get_option( 'date_format' ), ( $photo->date ) ) ;
+				$stream['date_modified'] = date_i18n( get_option( 'date_format' ), ( $photo->date ) ) ;
+				$stream['author_name'] = $search_user_id;
+
+				if(isset($photo->tags))	$stream['tags'] = implode(',', $photo->tags);
+
+				$stream['likes'] = $photo->likes->count;
+				$stream['likes_short'] = Essential_Grid_Base::thousandsViewFormat($photo->likes->count);
+				$stream['num_comments'] = $photo->comments->count;
+
+
+				$this->stream[] = $stream;
+			}
+		}
+		return $count;
 	}
 
 	/**
 	 * Fallback method to get 12 latest photos
 	 * @param String $search_user_id (name of instagram user)
 	 */
-	private function getFallbackImages($search_user_id){
+	private function getFallbackImages($search_user_id) {
 		//FALLBACK 12 ELEMENTS
-		$user_data = '';
-		
 		$page_res = $this->client_request('get', '/' . $search_user_id . '/');
-		switch($this->get_val($page_res, 'http_code')){
+		switch ($page_res['http_code']) {
 			default:
+				break;
+		
 			case 404:
-			break;
+				break;
+		
 			case 200:
 				$page_data_matches = array();
-			
-				if(!preg_match('#window\._sharedData\s*=\s*(.*?)\s*;\s*</script>#', $this->get_val($page_res, 'body'), $page_data_matches)){
-					_e('Instagram reports: Parse script error',  'revslider');
-				}else{
+		
+				if (!preg_match('#window\._sharedData\s*=\s*(.*?)\s*;\s*</script>#', $page_res['body'], $page_data_matches)) {
+					_e('Instagram reports: Parse script error','revslider');
+		
+				} else {
 					$page_data = json_decode($page_data_matches[1], true);
-					
-					$user_data = $this->get_val($page_data, array('entry_data', 'ProfilePage', 0, 'graphql', 'user'), false);
-					if($user_data === false){
-						_e('Instagram reports: Content did not match expected', 'revslider');
-					}else{
-						if($this->get_val($user_data, 'is_private')){
-							_e('Instagram reports: Content is private', 'revslider');
+		
+					if (!$page_data || empty($page_data['entry_data']['ProfilePage'][0]['graphql']['user'])) {
+						_e('Instagram reports: Content did not match expected','revslider');
+		
+					} else {
+						$user_data = $page_data['entry_data']['ProfilePage'][0]['graphql']['user'];
+		
+						if ($user_data['is_private']) {
+							_e('Instagram reports: Content is private','revslider');
+		
 						}
 					}
 				}
-			break;
-		}
 		
+				break;
+		}
+		$user_data = $page_data['entry_data']['ProfilePage'][0]['graphql']['user'];
 		return $user_data;
 	}
 	
@@ -615,41 +914,39 @@ class RevSliderInstagram  extends RevSliderFunctions {
 	 * @param unknown $options
 	 * @return number[]|string[]|NULL|number[]|string[]|number[]|unknown[]|string[]|number[]|unknown[]|unknown[][]|string[][]|number[][]|NULL[][]
 	 */
-	private function client_request($type, $url, $options = null){
+	private function client_request($type, $url, $options = null) {
 
 		$this->index('client', array(
-			'base_url' => 'https://www.instagram.com/',
-			'cookie_jar' => array(),
-			'headers' => array(
-				// 'Accept-Encoding' => supports_gz () ? 'gzip' : null,
-				'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.87 Safari/537.36',
-				'Origin' => 'https://www.instagram.com',
-				'Referer' => 'https://www.instagram.com',
-				'Connection' => 'close'
-			)
+				'base_url' => 'https://www.instagram.com/',
+				'cookie_jar' => array(),
+				'headers' => array(
+						// 'Accept-Encoding' => supports_gz () ? 'gzip' : null,
+						'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.87 Safari/537.36',
+						'Origin' => 'https://www.instagram.com',
+						'Referer' => 'https://www.instagram.com',
+						'Connection' => 'close'
+				)
 		));
-		$client	 = $this->index('client');
-		$type	 = strtoupper($type);
+		$client = $this->index('client');
+		$type = strtoupper($type);
 		$options = is_array($options) ? $options : array();
 
-		$url	 = (!empty($client['base_url']) ? rtrim($client['base_url'], '/') : '') . $url;
+		$url = (!empty($client['base_url']) ? rtrim($client['base_url'], '/') : '') . $url;
 		$url_info = parse_url($url);
 
-		$scheme	 = $this->get_val($url_info, 'scheme', '');
-		$host	 = $this->get_val($url_info, 'host', '');
-		$port	 = $this->get_val($url_info, 'port', '');
-		$path	 = $this->get_val($url_info, 'path', '');
-		$query_str	= $this->get_val($url_info, 'query', '');
-		
-		$_o_query = $this->get_val($options, 'query');
-		if(!empty($_o_query)){
+		$scheme = !empty($url_info['scheme']) ? $url_info['scheme'] : '';
+		$host = !empty($url_info['host']) ? $url_info['host'] : '';
+		$port = !empty($url_info['port']) ? $url_info['port'] : '';
+		$path = !empty($url_info['path']) ? $url_info['path'] : '';
+		$query_str = !empty($url_info['query']) ? $url_info['query'] : '';
+
+		if (!empty($options['query'])) {
 			$query_str = http_build_query($options['query']);
 		}
 
-		$headers = $this->get_val($client, 'headers', array());
-		
-		$_o_headers = $this->get_val($options, 'headers');
-		if(!empty($_o_headers)){
+		$headers = !empty($client['headers']) ? $client['headers'] : array();
+
+		if (!empty($options['headers'])) {
 			$headers = $this->array_merge_assoc($headers, $options['headers']);
 		}
 
@@ -658,15 +955,14 @@ class RevSliderInstagram  extends RevSliderFunctions {
 		$client_cookies = $this->client_get_cookies_list($host);
 		$cookies = $client_cookies;
 
-		$_o_cookies = $this->get_val($options, 'cookies');
-		if(!empty($_o_cookies)){
+		if (!empty($options['cookies'])) {
 			$cookies = $this->array_merge_assoc($cookies, $options['cookies']);
 		}
 
-		if($cookies){
+		if ($cookies) {
 			$request_cookies_raw = array();
 
-			foreach($cookies as $cookie_name => $cookie_value){
+			foreach ($cookies as $cookie_name => $cookie_value) {
 				$request_cookies_raw[] = $cookie_name . '=' . $cookie_value;
 			}
 			unset($cookie_name, $cookie_data);
@@ -674,18 +970,18 @@ class RevSliderInstagram  extends RevSliderFunctions {
 			$headers['Cookie'] = implode('; ', $request_cookies_raw);
 		}
 
-		$_o_data = $this->get_val($options, 'data');
-		if($type === 'POST' && !empty($_o_data)){
-			$data_str = http_build_query($_o_data);
+		if ($type === 'POST' && !empty($options['data'])) {
+			$data_str = http_build_query($options['data']);
 			$headers['Content-Type'] = 'application/x-www-form-urlencoded';
 			$headers['Content-Length'] = strlen($data_str);
-		}else{
+
+		} else {
 			$data_str = '';
 		}
 
 		$headers_raw_list = array();
 
-		foreach($headers as $header_key => $header_value){
+		foreach ($headers as $header_key => $header_value) {
 			$headers_raw_list[] = $header_key . ': ' . $header_value;
 		}
 		unset($header_key, $header_value);
@@ -694,28 +990,29 @@ class RevSliderInstagram  extends RevSliderFunctions {
 		$curl_support = function_exists('curl_init');
 		$sockets_support = function_exists('fsockopen');
 
-		if(!$curl_support && !$sockets_support){
+		if (!$curl_support && !$sockets_support) {
 			log_error('Curl and sockets are not supported on this server');
 
 			return array(
-				'status' => 0,
-				'transport_error' => 'php on web-server does not support curl and sockets'
+					'status' => 0,
+					'transport_error' => 'php on web-server does not support curl and sockets'
 			);
 		}
 
-		if($curl_support){
+		if ($curl_support) {
+
+
 			$curl = curl_init();
 			$curl_options = array(
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_HEADER => true,
-				CURLOPT_URL => $scheme . '://' . $host . $path . (!empty($query_str) ? '?' . $query_str : ''),
-				CURLOPT_HTTPHEADER => $headers_raw_list,
-				//CURLOPT_SSL_VERIFYPEER => false,
-				CURLOPT_SSL_VERIFYPEER => true,
-				CURLOPT_CONNECTTIMEOUT => 15,
-				CURLOPT_TIMEOUT => 60,
+					CURLOPT_RETURNTRANSFER => true,
+					CURLOPT_HEADER => true,
+					CURLOPT_URL => $scheme . '://' . $host . $path . (!empty($query_str) ? '?' . $query_str : ''),
+					CURLOPT_HTTPHEADER => $headers_raw_list,
+					CURLOPT_SSL_VERIFYPEER => false,
+					CURLOPT_CONNECTTIMEOUT => 15,
+					CURLOPT_TIMEOUT => 60,
 			);
-			if($type === 'POST'){
+			if ($type === 'POST') {
 				$curl_options[CURLOPT_POST] = true;
 				$curl_options[CURLOPT_POSTFIELDS] = $data_str;
 			}
@@ -728,25 +1025,28 @@ class RevSliderInstagram  extends RevSliderFunctions {
 
 			curl_close($curl);
 
-			if($curl_info['http_code'] === 0){
+
+			if ($curl_info['http_code'] === 0) {
 				log_error('An error occurred while loading data. curl_error: ' . $curl_error);
 
 				$transport_error = array('status' => 0, 'transport_error' => 'curl');
 
-				if(!$sockets_support){
+				if (!$sockets_support) {
 					return $transport_error;
+
 				}
+
 			}
 		}
 
-		if(!$curl_support || $transport_error){
+		if (!$curl_support || $transport_error) {
 			log_error('Trying to load data using sockets');
 
 			$headers_str = implode("\r\n", $headers_raw_list);
 
 			$out = sprintf("%s %s HTTP/1.1\r\n%s\r\n\r\n%s", $type, $path . (!empty($query_str) ? '?' . $query_str : ''), $headers_str, $data_str);
 
-			if($scheme === 'https'){
+			if ($scheme === 'https') {
 				$scheme = 'ssl';
 				$port = !empty($port) ? $port : 443;
 			}
@@ -756,14 +1056,14 @@ class RevSliderInstagram  extends RevSliderFunctions {
 
 			$sock = @fsockopen($scheme . $host, $port, $err_num, $err_str, 15);
 
-			if(!$sock){
+			if (!$sock) {
 				log_error('An error occurred while loading data error_number: ' . $err_num . ', error_number: ' . $err_str);
 
 				return array(
-					'status' => 0,
-					'error_number' => $err_num,
-					'error_message' => $err_str,
-					'transport_error' => $transport_error ? 'curl and sockets' : 'sockets'
+						'status' => 0,
+						'error_number' => $err_num,
+						'error_message' => $err_str,
+						'transport_error' => $transport_error ? 'curl and sockets' : 'sockets'
 				);
 			}
 
@@ -771,7 +1071,7 @@ class RevSliderInstagram  extends RevSliderFunctions {
 
 			$response_str = '';
 
-			while ($line = fgets($sock, 128)){
+			while ($line = fgets($sock, 128)) {
 				$response_str .= $line;
 			}
 
@@ -779,148 +1079,112 @@ class RevSliderInstagram  extends RevSliderFunctions {
 		}
 
 
-		@list($response_headers_str, $response_body_encoded, $alt_body_encoded) = explode("\r\n\r\n", $response_str);
+		@list ($response_headers_str, $response_body_encoded, $alt_body_encoded) = explode("\r\n\r\n", $response_str);
 
-		if($alt_body_encoded){
+		if ($alt_body_encoded) {
 			$response_headers_str = $response_body_encoded;
 			$response_body_encoded = $alt_body_encoded;
 		}
 
+
 		$response_body = $response_body_encoded;
 		$response_headers_raw_list = explode("\r\n", $response_headers_str);
 		$response_http = array_shift($response_headers_raw_list);
-		
-		$found_matches = preg_match('#^([^\s]+)\s(\d+)\s([^$]+)$#', $response_http, $response_http_matches);
 
-		if(!$found_matches){
-			$response_http = trim($response_http);
-			preg_match('#^([^\s]+)\s(\d+)$#', $response_http, $response_http_matches);
-		}
-		
+		preg_match('#^([^\s]+)\s(\d+)\s([^$]+)$#', $response_http, $response_http_matches);
 		array_shift($response_http_matches);
 		list ($response_http_protocol, $response_http_code, $response_http_message) = $response_http_matches;
 
 		$response_headers = array();
 		$response_cookies = array();
-		foreach($response_headers_raw_list as $header_row){
+		foreach ($response_headers_raw_list as $header_row) {
 			list ($header_key, $header_value) = explode(': ', $header_row, 2);
-	
-			if(strtolower($header_key) === 'set-cookie'){
+
+			if (strtolower($header_key) === 'set-cookie') {
 				$cookie_params = explode('; ', $header_value);
-	
-				if(empty($cookie_params[0])){
+
+				if (empty($cookie_params[0])) {
 					continue;
 				}
-	
+
 				list ($cookie_name, $cookie_value) = explode('=', $cookie_params[0]);
 				$response_cookies[$cookie_name] = $cookie_value;
-	
-			}else{
+
+			} else {
 				$response_headers[$header_key] = $header_value;
 			}
 		}
 		unset($header_row, $header_key, $header_value, $cookie_name, $cookie_value);
 
-		if($response_cookies){
+		if ($response_cookies) {
 			$response_cookies['ig_or'] = 'landscape-primary';
 			$response_cookies['ig_pr'] = '1';
 			$response_cookies['ig_vh'] = rand(500, 1000);
 			$response_cookies['ig_vw'] = rand(1100, 2000);
-	
+
 			$client['cookie_jar'][$host] = $this->array_merge_assoc($client_cookies, $response_cookies);
 			$this->index('client', $client);
 		}
-		
 		return array(
-			'status'		=> 1,
-			'http_protocol'	=> $response_http_protocol,
-			'http_code'		=> $response_http_code,
-			'http_message'	=> $response_http_message,
-			'headers'		=> $response_headers,
-			'cookies'		=> $response_cookies,
-			'body'			=> $response_body
+				'status' => 1,
+				'http_protocol' => $response_http_protocol,
+				'http_code' => $response_http_code,
+				'http_message' => $response_http_message,
+				'headers' => $response_headers,
+				'cookies' => $response_cookies,
+				'body' => $response_body
 		);
 	}
-	
 	/**
 	 * Helper function for fallback photos function
 	 * @param unknown $domain
 	 * @return unknown
-	*/
-	private function client_get_cookies_list($domain){
+	 */
+	private function client_get_cookies_list($domain) {
 		$client = $this->index('client');
-		
-		return $this->get_val($client, array('cookie_jar', $domain), array());
+		$cookie_jar = $client['cookie_jar'];
+
+		return !empty($cookie_jar[$domain]) ? $cookie_jar[$domain] : array();
 	}
-	
 	/**
 	 * Helper function for fallback photos function
 	 * @param unknown $key
 	 * @param unknown $value
 	 * @param string $f
 	 * @return NULL|string
-	*/
-	private function index($key, $value = null, $f = false){
+	 */
+	private function index($key, $value = null, $f = false) {
 		static $index = array();
 
-		if($value || $f){
+		if ($value || $f) {
 			$index[$key] = $value;
 		}
 
 		return !empty($index[$key]) ? $index[$key] : null;
 	}
-	
 	/**
 	 * Helper function for fallback photos function
 	 * @return NULL
-	*/
-	private function array_merge_assoc(){
+	 */
+	private function array_merge_assoc() {
 		$mixed = null;
 		$arrays = func_get_args();
-
-		foreach($arrays as $k => $arr){
-			if($k === 0){
+	
+		foreach ($arrays as $k => $arr) {
+			if ($k === 0) {
 				$mixed = $arr;
 				continue;
 			}
+	
 			$mixed = array_combine(
-				array_merge(array_keys($mixed), array_keys($arr)),
-				array_merge(array_values($mixed), array_values($arr))
-			);
+					array_merge(array_keys($mixed), array_keys($arr)),
+					array_merge(array_values($mixed), array_values($arr))
+					);
 		}
-  
+	
 		return $mixed;
 	}
-
-	/**
-	 * Get Instagram Pictures Public by Tag
-	 *
-	 * @since    1.0.0
-	 * @param    string    $user_id 	Instagram User id (not name)
-	 */
-	public function get_tag_photos($search_tag,$count){
-		//call the API and decode the response
-		$url = 'https://www.instagram.com/explore/tags/'.$search_tag.'/?__a=1';
 	
-		$transient_name = 'revslider_' . md5($url);
-		/*if($this->transient_sec > 0 && false !== ($data = get_transient($transient_name)))
-			return ($data);
-		*/
-		$rsp = json_decode(wp_remote_fopen($url));
-
-		for($i=0; $i < $count; $i++){
-			$return[] = $this->get_val($rsp, array('tag', 'media', 'nodes', $i));
-		}
-	
-		if($this->get_val($rsp, array('tag', 'media', 'nodes'), false) !== false){
-			$rsp->tag->media->nodes = $return;
-			set_transient($transient_name, $rsp->tag->media->nodes, $this->transient_sec);
-			
-			return $rsp->tag->media->nodes;
-		}else{
-			return '';
-		}
-	}
 }	// End Class
 
 /**

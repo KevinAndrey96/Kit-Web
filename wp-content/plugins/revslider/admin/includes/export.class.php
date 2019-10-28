@@ -53,6 +53,12 @@ class RevSliderSliderExport extends RevSliderSlider {
 		$this->export_url_zip	= $this->get_val($wp_upload_dir, 'baseurl').'/'.$title.'.zip';
 	}
 	
+	/**
+	 * return the used images, for SEO
+	 */
+	public function get_used_images(){
+		return $this->used_images;
+	}
 	
 	/**
 	 * export slider from data, output a file for download
@@ -193,8 +199,6 @@ class RevSliderSliderExport extends RevSliderSlider {
 	 * add all used images
 	 **/
 	public function add_used_images(){
-		$this->slider_params;
-		
 		$image = $this->get_val($this->slider_params, array('layout', 'bg', 'image'));
 		$a_url = $this->get_val($this->slider_params, array('troubleshooting', 'alternateURL'));
 		
@@ -244,7 +248,6 @@ class RevSliderSliderExport extends RevSliderSlider {
 				}
 			}
 		}
-		
 	}
 	
 	

@@ -28,32 +28,43 @@ class RevSliderData {
 	 * before: RevSliderOperations::getArrFontFamilys()
 	 */
 	public function get_font_familys(){
-
+		$fonts = array();
+		
+		//add custom added fonts
+		$gs = $this->get_global_settings();
+		$cf = $this->get_val($gs, 'customfonts', '');
+		$cfa = (!empty($cf)) ? explode(',', $cf) : '';
+		
+		if(!empty($cfa)){
+			foreach($cfa as $_cfa){
+				$fonts[] = array('type' => 'custom', 'version' => __('Custom Fonts', 'revslider'), 'label' => $_cfa);
+			}
+		}
+		
 		//Web Safe Fonts
-		$fonts = array(
-			// GOOGLE Loaded Fonts
-			array('type' => 'websafe', 'version' => __('Loaded Google Fonts', 'revslider'), 'label' => 'Dont Show Me'),
+		// GOOGLE Loaded Fonts
+		$fonts[] = array('type' => 'websafe', 'version' => __('Loaded Google Fonts', 'revslider'), 'label' => 'Dont Show Me');
 
-			//Serif Fonts
-			array('type' => 'websafe', 'version' => __('Serif Fonts', 'revslider'), 'label' => 'Georgia, serif'),
-			array('type' => 'websafe', 'version' => __('Serif Fonts', 'revslider'), 'label' => '"Palatino Linotype", "Book Antiqua", Palatino, serif'),
-			array('type' => 'websafe', 'version' => __('Serif Fonts', 'revslider'), 'label' => '"Times New Roman", Times, serif'),
+		//Serif Fonts
+		$fonts[] = array('type' => 'websafe', 'version' => __('Serif Fonts', 'revslider'), 'label' => 'Georgia, serif');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Serif Fonts', 'revslider'), 'label' => '"Palatino Linotype", "Book Antiqua", Palatino, serif');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Serif Fonts', 'revslider'), 'label' => '"Times New Roman", Times, serif');
 
-			//Sans-Serif Fonts
-			array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => 'Arial, Helvetica, sans-serif'),
-			array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => '"Arial Black", Gadget, sans-serif'),
-			array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => '"Comic Sans MS", cursive, sans-serif'),
-			array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => 'Impact, Charcoal, sans-serif'),
-			array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => '"Lucida Sans Unicode", "Lucida Grande", sans-serif'),
-			array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => 'Tahoma, Geneva, sans-serif'),
-			array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => '"Trebuchet MS", Helvetica, sans-serif'),
-			array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => 'Verdana, Geneva, sans-serif'),
+		//Sans-Serif Fonts
+		$fonts[] = array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => 'Arial, Helvetica, sans-serif');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => '"Arial Black", Gadget, sans-serif');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => '"Comic Sans MS", cursive, sans-serif');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => 'Impact, Charcoal, sans-serif');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => '"Lucida Sans Unicode", "Lucida Grande", sans-serif');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => 'Tahoma, Geneva, sans-serif');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => '"Trebuchet MS", Helvetica, sans-serif');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Sans-Serif Fonts', 'revslider'), 'label' => 'Verdana, Geneva, sans-serif');
 
-			//Monospace Fonts
-			array('type' => 'websafe', 'version' => __('Monospace Fonts', 'revslider'), 'label' => '"Courier New", Courier, monospace'),
-			array('type' => 'websafe', 'version' => __('Monospace Fonts', 'revslider'), 'label' => '"Lucida Console", Monaco, monospace'),
-		);
-
+		//Monospace Fonts
+		$fonts[] = array('type' => 'websafe', 'version' => __('Monospace Fonts', 'revslider'), 'label' => '"Courier New", Courier, monospace');
+		$fonts[] = array('type' => 'websafe', 'version' => __('Monospace Fonts', 'revslider'), 'label' => '"Lucida Console", Monaco, monospace');
+		
+		
 		//push all variants to the websafe fonts
 		foreach($fonts as $f => $font){
 			$font[$f]['variants'] = array('100', '100italic', '200', '200italic', '300', '300italic', '400', '400italic', '500', '500italic', '600', '600italic', '700', '700italic', '800', '800italic', '900', '900italic');
@@ -228,9 +239,9 @@ class RevSliderData {
 			break;
 			case 'youtube':
 				$custom_sizes = array(
-					'default' => __('Default', 'revslider'),
-					'medium' => __('Medium', 'revslider'),
 					'high' => __('High', 'revslider'),
+					'medium' => __('Medium', 'revslider'),
+					'default' => __('Default', 'revslider'),
 					'standard' => __('Standard', 'revslider'),
 					'maxres' => __('Max. Res.', 'revslider'),
 				);
@@ -246,7 +257,7 @@ class RevSliderData {
 			default:
 				$added_image_sizes = get_intermediate_image_sizes();
 				if(!empty($added_image_sizes) && is_array($added_image_sizes)){
-					foreach ($added_image_sizes as $key => $img_size_handle){
+					foreach($added_image_sizes as $key => $img_size_handle){
 						$custom_sizes[$img_size_handle] = ucwords(str_replace('_', ' ', $img_size_handle));
 					}
 				}

@@ -132,17 +132,13 @@
 			default:
 				
 				if(window.revslider_react) {
-					
 					window.revslider_react.state.text = content; 
 					window.revslider_react.state.modal = modal;
 					window.revslider_react.state.sliderTitle = data.title;
-					
-					// window.revslider_react.props.attributes.text = content;
-					// window.revslider_react.props.attributes.sliderTitle = data.title;
-					window.revslider_react.props.setAttributes({sliderTitle: data.title, text: content, modal: modal});
-					
+					window.revslider_react.state.sliderImage = data.bg.src;
+
+					window.revslider_react.props.setAttributes({sliderTitle: data.title, text: content, modal: modal, sliderImage: data.bg.src});
 					window.revslider_react.forceUpdate();
-					
 				}
 				
 			// end default

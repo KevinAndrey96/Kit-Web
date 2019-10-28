@@ -31,7 +31,11 @@ if(!defined('ABSPATH')) exit();
 			while(have_posts()) : the_post();
 
 				// Include the page content template.
-				echo do_shortcode(get_the_content());
+				if(!isset($revslider_is_preview_mode) || $revslider_is_preview_mode === false){
+					the_content();
+				}else{
+					echo do_shortcode(get_the_content());
+				}
 
 			// End the loop.
 			endwhile;

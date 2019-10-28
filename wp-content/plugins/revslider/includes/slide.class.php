@@ -261,6 +261,19 @@ class RevSliderSlide extends RevSliderFunctions {
 		return $this->slider->get_param($name, $default);
 	}
 	
+	/**
+	 * get the overview data of a slide
+	 * @since: 6.1.2
+	 */
+	public function get_overview_data(){
+		return array(
+			'id' => $this->get_id(),
+			'order' => $this->get_order(),
+			'title' => $this->get_title(),
+			'state' => $this->get_param(array('publish', 'state'), 'published'),
+			'customAdminThumbSrc' => $this->get_overview_image_attributes('gallery')
+		);
+	}
 	
 	/**
 	 * get the id of the static slide
@@ -353,11 +366,10 @@ class RevSliderSlide extends RevSliderFunctions {
 	
 	
 	/**
-	 * Save a Slide by the given Data
+	 * Save a Slide by the given data
 	 * @before: RevSliderSlide::updateSlideFromData();
 	 **/
 	public function save_slide($slide_id, $data, $slider_id){
-		
 		if(!$this->exist_by_id($slide_id)){
 			$static = (strpos($slide_id, 'static_') !== false) ? true : false;
 			
@@ -399,15 +411,65 @@ class RevSliderSlide extends RevSliderFunctions {
 	
 	
 	/**
+	 * Merge settings of a Slide by the given data
+	 * @since: 6.1.2
+	 **/
+	public function save_slide_advanced($slide_id, $data, $slider_id){
+		if(!$this->exist_by_id($slide_id)){
+			$static = (strpos($slide_id, 'static_') !== false) ? true : false;
+			
+			$slide_id = $this->create_slide($slider_id, '', $static, $slide_id);
+			if(!$this->exist_by_id($slide_id)){
+				return false;
+			}
+		}
+		
+		$this->init_by_id($slide_id);
+		
+		$params = $this->get_val($data, 'params', array());
+		$params = $this->json_decode_slashes($params);
+		$version = $this->get_val($params, 'version', $this->get_val($this->settings, 'version', RS_REVISION));
+		if(!empty($params)){
+			if(isset($params['version'])) unset($params['version']);
+			
+			//$this->params = array_merge_recursive($this->params, $params);
+			$this->params = array_replace_recursive($this->params, $params);
+			$this->save_params();
+		}
+		
+		$layers = $this->get_val($data, 'layers', array());
+		$layers = $this->json_decode_slashes($layers);
+		if(!empty($layers)){
+			//$this->layers = array_merge_recursive($this->layers, $layers);
+			$this->layers = array_replace_recursive($this->layers, $layers);
+			$this->save_layers();
+		}
+		
+		$settings = $this->get_val($data, 'settings', array());
+		$settings = $this->json_decode_slashes($settings);
+		if(!empty($settings)){
+			$settings['version'] = $version;
+			//$this->settings = array_merge_recursive($this->settings, $settings);
+			$this->settings = array_replace_recursive($this->settings, $settings);
+			$this->save_settings();
+		}
+		
+		return true;
+	}
+	
+	
+	/**
 	 * delete a slide by its ID
 	 * @before: RevSliderSlide::deleteSlide();
 	 */
 	public function delete_slide_by_id($slide_id){
 		global $wpdb;
 		
-		$wpdb->delete($wpdb->prefix . RevSliderFront::TABLE_SLIDES, array('id' => $slide_id));
+		$return = $wpdb->delete($wpdb->prefix . RevSliderFront::TABLE_SLIDES, array('id' => $slide_id));
 		
 		do_action('revslider_slide_deleteSlide', $slide_id);
+		
+		return $return;
 	}
 	
 	
@@ -525,21 +587,20 @@ class RevSliderSlide extends RevSliderFunctions {
 			
 			$this->params['seo']['link'] = str_replace('_REVSLIDER_', '-', $this->params['seo']['link']);
 		}
-		
 		$this->params['publish']['state'] = ($data['post_status'] == 'publish') ? 'published' : $this->params['publish']['state'] = 'unpublished';
 		
-		$tid = get_post_thumbnail_id($post_id);
-		
-		if(!empty($tid)){
-			if($this->get_val($this->params, array('bg', 'type')) == 'image'){ //if image is choosen, use featured image as background
-				$this->set_image_by_image_id($tid);
-			}
+		if($this->get_val($this->params, array('bg', 'imageFromStream'), false) === true){ //if image is choosen, use featured image as background // && $this->get_val($this->params, array('bg', 'type')) == 'image'
+			$tid = get_post_thumbnail_id($post_id);
 			
-			//set the thumbnail image
-			$thumbnail_url = wp_get_attachment_image_src($tid, 'thumbnail');
-			if($thumbnail_url !== false){
-				if(!isset($this->params['thumb'])) $this->params['thumb'] = array();
-				$this->params['thumb']['customThumbSrc'] = $this->get_val($thumbnail_url, 0);
+			if(!empty($tid)){
+				$this->set_image_by_image_id($tid);
+				
+				//set the thumbnail image
+				$thumbnail_url = wp_get_attachment_image_src($tid, 'thumbnail');
+				if($thumbnail_url !== false){
+					if(!isset($this->params['thumb'])) $this->params['thumb'] = array();
+					$this->params['thumb']['customThumbSrc'] = $this->get_val($thumbnail_url, 0);
+				}
 			}
 		}
 		
@@ -849,23 +910,23 @@ class RevSliderSlide extends RevSliderFunctions {
 				if(strpos($text, 'wc_add_to_cart_button') !== false){
 					$pr_id			= ($is_30) ? $product->get_id() : $product->id;
 					$pr_type		= ($is_30) ? $product->get_type() : $product->product_type;
-					$suffix			= defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-					$ajax_cart_en	= get_option( 'woocommerce_enable_ajax_add_to_cart' ) == 'yes' ? true : false;
-					$assets_path	= str_replace( array( 'http:', 'https:' ), '', WC()->plugin_url() ) . '/assets/';
+					$suffix			= defined('SCRIPT_DEBUG') && SCRIPT_DEBUG ? '' : '.min';
+					$ajax_cart_en	= get_option('woocommerce_enable_ajax_add_to_cart') == 'yes' ? true : false;
+					$assets_path	= str_replace(array( 'http:', 'https:'), '', WC()->plugin_url()) . '/assets/';
 					
 					if($ajax_cart_en){
 						wp_enqueue_script( 'wc-add-to-cart', $assets_path.'js/frontend/'.'add-to-cart'.$suffix.'.js', array('jquery'), WC_VERSION, true);
 						
 						global $wc_is_localized;
 						if($wc_is_localized === false){ //load it only one time
-							wp_localize_script( 'wc-add-to-cart', 'wc_add_to_cart_params', apply_filters( 'wc_add_to_cart_params', array(
+							wp_localize_script('wc-add-to-cart', 'wc_add_to_cart_params', apply_filters('wc_add_to_cart_params', array(
 								'ajax_url'			=> WC()->ajax_url(),
-								'ajax_loader_url'	=> apply_filters( 'woocommerce_ajax_loader_url', $assets_path . 'images/ajax-loader@2x.gif' ),
-								'i18n_view_cart'	=> esc_attr__( 'View Cart', 'woocommerce' ),
-								'cart_url'			=> get_permalink( wc_get_page_id( 'cart' ) ),
+								'ajax_loader_url'	=> apply_filters('woocommerce_ajax_loader_url', $assets_path . 'images/ajax-loader@2x.gif'),
+								'i18n_view_cart'	=> esc_attr__('View Cart', 'woocommerce'),
+								'cart_url'			=> get_permalink(wc_get_page_id('cart')),
 								'is_cart'			=> is_cart(),
-								'cart_redirect_after_add' => get_option( 'woocommerce_cart_redirect_after_add' )
-							) ) );
+								'cart_redirect_after_add' => get_option('woocommerce_cart_redirect_after_add')
+							)));
 							$wc_is_localized = true;
 						}
 					}
@@ -917,7 +978,7 @@ class RevSliderSlide extends RevSliderFunctions {
 		
 		//init by global template
 		$this->init_by_slide($a['template']);
-		
+
 		switch($a['sourcetype']){
 			case 'facebook':
 				$this->init_by_facebook($a['slider_id'], $a['additions']);
@@ -926,11 +987,11 @@ class RevSliderSlide extends RevSliderFunctions {
 				$this->init_by_twitter($a['slider_id'], $a['additions']);
 			break;
 			case 'instagram':
-				$this->post_data = $this->get_val($this->post_data, 'node', array());
-				$this->init_by_instagram($a['slider_id']);
+				//$this->post_data = $this->get_val($this->post_data, 'node', array());
+				$this->init_by_instagram($a['slider_id'], $a['additions']);
 			break;
 			case 'flickr':
-				$this->init_by_flickr($a['slider_id']);
+				$this->init_by_flickr($a['slider_id'], $a['additions']);
 			break;
 			case 'youtube':
 				$this->init_by_youtube($a['slider_id'], $a['additions']);
@@ -940,9 +1001,13 @@ class RevSliderSlide extends RevSliderFunctions {
 			break;
 			default:
 				$return = apply_filters('revslider_slide_initByStreamData_sourceType', false, $a, $this);
-				if($return === false)
-					$this->throw_error(__('Source must be from Stream', 'revslider'));
+				
+				if($return === false) $this->throw_error(__('Source must be from Stream', 'revslider'));
 			break;
+		}
+		
+		if($this->get_val($this->params, array('bg', 'type')) == 'image'){
+			$this->params['bg']['image'] = $this->image_url;
 		}
 	}
 	
@@ -1095,14 +1160,14 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @since: 5.0
 	 * @before: RevSliderSlide::initByInstagram();
 	 */
-	private function init_by_instagram($slider_id){
+	private function init_by_instagram($slider_id, $additions = array()){
 		$this->post_data = apply_filters('revslider_slide_initByInstagram_pre', $this->post_data, $slider_id, $this);
 		
 		//set some slide params
 		$this->id = $this->get_val($this->post_data, 'id');
 		$caption = $this->get_val($this->post_data, 'caption');
 		$link	 = $this->get_val($this->post_data, 'link');
-		$link	 = (empty($link)) ? 'https://www.instagram.com/p/' . $this->get_val($this->post_data, 'code') : $link;
+		$link	 = (empty($link)) ? 'https://www.instagram.com/p/' . $this->get_val($this->post_data, 'shortcode') : $link;
 		$this->set_param('title', $this->get_val($caption, 'text'));
 		$this->set_param(array('publish', 'state'), 'published');
 
@@ -1147,7 +1212,7 @@ class RevSliderSlide extends RevSliderFunctions {
 		
 		$this->post_data = apply_filters('revslider_slide_initByInstagram_post', $this->post_data, $slider_id, $this);
 		
-		$this->set_layers_by_stream($slider_id, 'instagram'); //replace placeholders in layers
+		$this->set_layers_by_stream($slider_id, 'instagram', $additions); //replace placeholders in layers
 	}
 	
 	
@@ -1155,7 +1220,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * init the data for flickr
 	 * @since: 5.0
 	 */
-	private function init_by_flickr($slider_id){
+	private function init_by_flickr($slider_id, $additions){
 		$this->post_data = apply_filters('revslider_slide_initByFlickr_pre', $this->post_data, $slider_id, $this);
 		$this->id		 = $this->get_val($this->post_data, 'id');
 		$this->set_param('title', $this->get_val($this->post_data, 'title'));
@@ -1196,7 +1261,7 @@ class RevSliderSlide extends RevSliderFunctions {
 		
 		$this->post_data = apply_filters('revslider_slide_initByFlickr_post', $this->post_data, $slider_id, $this);
 		
-		$this->set_layers_by_stream($slider_id, 'flickr'); //replace placeholders in layers
+		$this->set_layers_by_stream($slider_id, 'flickr', $additions); //replace placeholders in layers
 	}
 	
 	
@@ -1253,13 +1318,14 @@ class RevSliderSlide extends RevSliderFunctions {
 			if(!isset($img_sizes[$img_res])) $img_res = key($img_sizes);
 			
 			$this->image_url = $this->get_val($is, $img_res, '');
+			$this->image_url = (empty($this->image_url)) ? $this->get_val($is, 'default', '') : $this->image_url;
 			$this->image_thumb = $this->get_val($is, 'medium', $this->image_thumb);
 			
 			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL.'public/assets/assets/sources/youtube.png' : $this->image_url;
 			$this->image_url = (is_ssl()) ? str_replace('http://', 'https://', $this->image_url) : $this->image_url;
 			
 			if($this->get_param(array('thumb', 'customThumbSrc'), '') === ''){
-				$this->set_param(array('thumb', 'customThumbSrc'), $this->image_url);
+				$this->set_param(array('thumb', 'customThumbSrc'), $this->image_thumb);
 			}
 			
 			$this->image_filename = basename($this->image_url);
@@ -1558,7 +1624,7 @@ class RevSliderSlide extends RevSliderFunctions {
 					'content' => $caption,
 					'link' => 'https://www.instagram.com/p/'. $this->get_val($this->post_data, 'shortcode'),
 					'date' => date_i18n(get_option('date_format').' '.get_option('time_format'), $this->get_val($this->post_data, 'taken_at_timestamp', false)),
-					'author_name' => $this->get_val($this->post_data, 'user_info', ''),
+					'author_name' => $this->get_val($additions, 'instagram_user'), //$this->get_val($this->post_data, 'user_info', '')
 					'likes' => $this->get_val($this->post_data, array('edge_liked_by', 'count')),
 					//'likes' => $this->get_val($likes_raw, 'count'),
 					'num_comments' => $this->get_val($this->post_data, array('edge_media_to_comment', 'count')),
@@ -2230,6 +2296,7 @@ class RevSliderSlide extends RevSliderFunctions {
 						break;
 						case 'posts':
 						case 'specific_posts':
+						case 'specific_post':
 							$image['src']	= $_src.'post.png';
 							$image['style']	= array('background-size' => 'cover');
 						break;
@@ -2322,6 +2389,7 @@ class RevSliderSlide extends RevSliderFunctions {
 					break;
 					case 'posts':
 					case 'specific_posts':
+					case 'specific_post':
 						$image['src']	= $_src.'post.png';
 						$image['style']	= array('background-size' => 'cover');
 					break;
@@ -2531,23 +2599,19 @@ class RevSliderSlide extends RevSliderFunctions {
 		
 		$this->image_id		= $id;
 		$this->image_url	= $this->get_url_attachment_image($id, $resolution);
+		$this->image_url	= (is_ssl()) ? str_replace('http://', 'https://', $this->image_url) : $this->image_url;
 		$this->image_thumb	= $this->get_url_attachment_image($id, 'medium');
 		
-		if(empty($this->image_url))
-			return(false);
+		if(empty($this->image_url)) return(false);
 		
 		if(!isset($this->params['bg'])) $this->params['bg'] = array();
 		$this->params['bg']['type'] = 'image';
-		
-		if(is_ssl()){
-			$this->image_url = str_replace('http://', 'https://', $this->image_url);
-		}
+		$this->params['bg']['image'] = $this->image_url;
 		
 		$this->image_path	= $this->get_image_path_from_url($this->image_url);
 		$real_path			= $this->get_content_path().$this->image_path;
 		
-		if(file_exists($real_path) == false || is_file($real_path) == false)
-			$this->image_path = '';
+		$this->image_path	= (file_exists($real_path) == false || is_file($real_path) == false) ? '' : $this->image_path;
 		
 		$this->image_filename = basename($this->image_url);
 	}

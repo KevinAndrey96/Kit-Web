@@ -158,7 +158,7 @@ $api = 'revapi'; // . $slider_id;
 
 					<div class="slider_modal_coversettings">
 						<div class="div5"></div>
-						<label_a><?php _e('Cover Color', 'revslider');?></label_a><input type="text" data-editing="Modal Background Color" name="slidermodalcolor" id="slidermodalcolor" class="my-color-field sliderinput" data-visible="true" data-r="modal.coverColor" value="rgba(0,0,0,0.5)">						
+						<label_a><?php _e('Cover Color', 'revslider');?></label_a><input type="text" data-editing="Modal Background Color" name="slidermodalcolor" id="slidermodalcolor" class="my-color-field sliderinput" data-visible="true" data-mode="single" data-r="modal.coverColor" value="rgba(0,0,0,0.5)">						
 					</div>
 					<div class="div10"></div>
 
@@ -760,12 +760,11 @@ foreach ($wc_sortby as $wc_val => $wc_name) {
 						<div class="facebook_album_settings facebook_source_settings">
 							<label_a><?php _e('Select Album', 'revslider');?></label_a><select id="sr_src_facebok_album" name="sr_src_facebok_album" data-theme="wideopentos2" class="sliderinput tos2 searchbox easyinit" data-r="source.facebook.album"></select>
 						</div>
-						<label_a><?php _e('APP ID', 'revslider');?></label_a><input placeholder="<?php _e('Enter the App ID', 'revslider');?>" data-r="source.facebook.appId" type="text"  data-evt="facebooksourcechange" name="sr_src_facebook_appid" class="easyinit sliderinput"><span class="linebreak"></span>
-						<label_a><?php _e('APP Secret', 'revslider');?></label_a><input placeholder="<?php _e('Enter the App Secret', 'revslider');?>" data-r="source.facebook.appSecret" type="text" data-evt="facebooksourcechange" name="sr_src_facebook_appsecret" class="easyinit sliderinput"><span class="linebreak"></span>
+						<label_a><?php _e('Access Token', 'revslider');?></label_a><input placeholder="<?php _e('Enter the Access Token', 'revslider');?>" data-r="source.facebook.appId" type="text"  data-evt="facebooksourcechange" name="sr_src_facebook_appid" class="easyinit sliderinput"><span class="linebreak"></span>
 						<div class="div10"></div>
 						<row >
 							<labelhalf><i class="material-icons vmi">sms_failed</i></labelhalf>
-							<contenthalf><div class="function_info"><?php _e('Please <a target="_blank" href="https://developers.facebook.com/docs/apps/register">register</a> your Website app with Facebook<br>to get the right values', 'revslider');?></div></contenthalf>
+							<contenthalf><div class="function_info"><?php _e('Please <a target="_blank" href="https://www.themepunch.com/faq/facebook-stream-setup-instructions-access-token/">generate</a> your Access Token in Facebook.', 'revslider');?></div></contenthalf>
 						</row>
 					</div><!-- END OF COLLAPSABLE -->
 				</div><!-- END OF FACEBOOK SETTINGS -->
@@ -1136,7 +1135,7 @@ if ($wpml->wpml_exists()) {
 					<div id="form_slidergeneral_effects_scroll_on" class="form_inner">
 						<div class="form_inner_header"><i class="material-icons">list</i><?php _e('Use Default on...', 'revslider');?></div>
 						<div class="collapsable" style="display:block !important">
-							<longoption><label_a><?php _e('Layers', 'revslider');?></label_a><input type="checkbox"  id="sr_scrtime_layers" class="sliderinput easyinit" data-r="scrolltimeline.layers"/></longoption>							
+							<longoption><label_a><?php _e('Layers', 'revslider');?></label_a><input type="checkbox"  id="sr_scrtime_layers" data-evt="checkLayerLoopswithOnScroll" class="sliderinput easyinit callEvent"  data-r="scrolltimeline.layers"/></longoption>							
 						</div>
 					</div>
 				</div>
