@@ -566,6 +566,7 @@ class RevSliderInstagram  extends RevSliderFunctions {
 			$transient_name = 'revslider_'. md5($cacheKey);
 			if($this->transient_sec > 0 && false !== ($data = get_transient($transient_name))){
 				$this->stream = $data;
+				
 				return $this->stream;
 			}
 			else
@@ -574,13 +575,16 @@ class RevSliderInstagram  extends RevSliderFunctions {
 				//Getting instragram images
 				$instagram = new Instagram();
 				$medias = $instagram->getMedias($search_user_id, $count);
-
+				
+				
 				if($medias != null){
 					$rsp = json_decode(json_encode($medias));
 				}else{
 					//Fallback function 12 photos
 					$rsp = json_decode(json_encode($this->getFallbackImages($search_user_id)));
 				}
+
+				
 
 				if(isset($rsp->edge_owner_to_timeline_media))
 					$count = $this->instagram_output_array($rsp->edge_owner_to_timeline_media->edges, $count, $search_user_id, $orig_image);
@@ -745,7 +749,6 @@ class RevSliderInstagram  extends RevSliderFunctions {
 					_e('Instagram reports: Please check the settings','revslider');
 					return false;
 				}
-
 				
 				while($count){
 					$url = 'https://www.instagram.com/explore/locations/'.$search_user_id.'/?__a=1&max_id='.$rsp->graphql->location->edge_location_to_media->page_info->end_cursor;
@@ -778,13 +781,14 @@ class RevSliderInstagram  extends RevSliderFunctions {
 	 */
 	private function instagram_output_array($photos,$count,$search_user_id,$orig_image=""){
 		$this->stream = $photos;
-		
+
 		foreach ($photos as $photo) {
 			if($count > 0){
 				$count--;
 				$this->stream[] = $photo;
 			}
 		}
+
 		return $count;
 	}
 
@@ -813,19 +817,22 @@ class RevSliderInstagram  extends RevSliderFunctions {
 				$thumbnail_resources = $photo->thumbnail_resources;
 
 				$image_url = array(
-						'Low Resolution' 		=> 	array($thumbnail_resources[2]->src,
-								320,
-								320
+						'Low Resolution' => array(
+							$thumbnail_resources[2]->src,
+							320,
+							320
 						),
-						'Thumbnail' 			=> 	array($thumbnail_resources[0]->src,
-								150,
-								150
+						'Thumbnail' => array(
+							$thumbnail_resources[0]->src,
+							150,
+							150
 						),
-						'Standard Resolution' 	=>	array($photo->thumbnail_src,
-								640,
-								640,
+						'Standard Resolution' => array(
+							$photo->thumbnail_src,
+							640,
+							640
 						),
-						'Original Resolution'	=> $orig_image
+						'Original Resolution' => $orig_image
 				);
 
 				$text = empty($photo->caption) ? '' : $photo->caption;
@@ -874,34 +881,28 @@ class RevSliderInstagram  extends RevSliderFunctions {
 		$page_res = $this->client_request('get', '/' . $search_user_id . '/');
 		switch ($page_res['http_code']) {
 			default:
-				break;
-		
+			break;
 			case 404:
-				break;
-		
+			break;
 			case 200:
 				$page_data_matches = array();
 		
-				if (!preg_match('#window\._sharedData\s*=\s*(.*?)\s*;\s*</script>#', $page_res['body'], $page_data_matches)) {
+				if(!preg_match('#window\._sharedData\s*=\s*(.*?)\s*;\s*</script>#', $page_res['body'], $page_data_matches)){
 					_e('Instagram reports: Parse script error','revslider');
-		
-				} else {
+				}else{
 					$page_data = json_decode($page_data_matches[1], true);
 		
 					if (!$page_data || empty($page_data['entry_data']['ProfilePage'][0]['graphql']['user'])) {
 						_e('Instagram reports: Content did not match expected','revslider');
-		
-					} else {
+					}else{
 						$user_data = $page_data['entry_data']['ProfilePage'][0]['graphql']['user'];
 		
-						if ($user_data['is_private']) {
+						if($user_data['is_private']){
 							_e('Instagram reports: Content is private','revslider');
-		
 						}
 					}
 				}
-		
-				break;
+			break;
 		}
 		$user_data = $page_data['entry_data']['ProfilePage'][0]['graphql']['user'];
 		return $user_data;
@@ -917,15 +918,15 @@ class RevSliderInstagram  extends RevSliderFunctions {
 	private function client_request($type, $url, $options = null) {
 
 		$this->index('client', array(
-				'base_url' => 'https://www.instagram.com/',
-				'cookie_jar' => array(),
-				'headers' => array(
-						// 'Accept-Encoding' => supports_gz () ? 'gzip' : null,
-						'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.87 Safari/537.36',
-						'Origin' => 'https://www.instagram.com',
-						'Referer' => 'https://www.instagram.com',
-						'Connection' => 'close'
-				)
+			'base_url' => 'https://www.instagram.com/',
+			'cookie_jar' => array(),
+			'headers' => array(
+				// 'Accept-Encoding' => supports_gz () ? 'gzip' : null,
+				'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.87 Safari/537.36',
+				'Origin' => 'https://www.instagram.com',
+				'Referer' => 'https://www.instagram.com',
+				'Connection' => 'close'
+			)
 		));
 		$client = $this->index('client');
 		$type = strtoupper($type);
@@ -994,8 +995,8 @@ class RevSliderInstagram  extends RevSliderFunctions {
 			log_error('Curl and sockets are not supported on this server');
 
 			return array(
-					'status' => 0,
-					'transport_error' => 'php on web-server does not support curl and sockets'
+				'status' => 0,
+				'transport_error' => 'php on web-server does not support curl and sockets'
 			);
 		}
 
@@ -1004,13 +1005,13 @@ class RevSliderInstagram  extends RevSliderFunctions {
 
 			$curl = curl_init();
 			$curl_options = array(
-					CURLOPT_RETURNTRANSFER => true,
-					CURLOPT_HEADER => true,
-					CURLOPT_URL => $scheme . '://' . $host . $path . (!empty($query_str) ? '?' . $query_str : ''),
-					CURLOPT_HTTPHEADER => $headers_raw_list,
-					CURLOPT_SSL_VERIFYPEER => false,
-					CURLOPT_CONNECTTIMEOUT => 15,
-					CURLOPT_TIMEOUT => 60,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_HEADER => true,
+				CURLOPT_URL => $scheme . '://' . $host . $path . (!empty($query_str) ? '?' . $query_str : ''),
+				CURLOPT_HTTPHEADER => $headers_raw_list,
+				CURLOPT_SSL_VERIFYPEER => false,
+				CURLOPT_CONNECTTIMEOUT => 15,
+				CURLOPT_TIMEOUT => 60,
 			);
 			if ($type === 'POST') {
 				$curl_options[CURLOPT_POST] = true;
@@ -1033,7 +1034,6 @@ class RevSliderInstagram  extends RevSliderFunctions {
 
 				if (!$sockets_support) {
 					return $transport_error;
-
 				}
 
 			}
@@ -1060,10 +1060,10 @@ class RevSliderInstagram  extends RevSliderFunctions {
 				log_error('An error occurred while loading data error_number: ' . $err_num . ', error_number: ' . $err_str);
 
 				return array(
-						'status' => 0,
-						'error_number' => $err_num,
-						'error_message' => $err_str,
-						'transport_error' => $transport_error ? 'curl and sockets' : 'sockets'
+					'status' => 0,
+					'error_number' => $err_num,
+					'error_message' => $err_str,
+					'transport_error' => $transport_error ? 'curl and sockets' : 'sockets'
 				);
 			}
 
@@ -1126,13 +1126,13 @@ class RevSliderInstagram  extends RevSliderFunctions {
 			$this->index('client', $client);
 		}
 		return array(
-				'status' => 1,
-				'http_protocol' => $response_http_protocol,
-				'http_code' => $response_http_code,
-				'http_message' => $response_http_message,
-				'headers' => $response_headers,
-				'cookies' => $response_cookies,
-				'body' => $response_body
+			'status' => 1,
+			'http_protocol' => $response_http_protocol,
+			'http_code' => $response_http_code,
+			'http_message' => $response_http_message,
+			'headers' => $response_headers,
+			'cookies' => $response_cookies,
+			'body' => $response_body
 		);
 	}
 	/**
@@ -1177,9 +1177,9 @@ class RevSliderInstagram  extends RevSliderFunctions {
 			}
 	
 			$mixed = array_combine(
-					array_merge(array_keys($mixed), array_keys($arr)),
-					array_merge(array_values($mixed), array_values($arr))
-					);
+				array_merge(array_keys($mixed), array_keys($arr)),
+				array_merge(array_values($mixed), array_values($arr))
+			);
 		}
 	
 		return $mixed;

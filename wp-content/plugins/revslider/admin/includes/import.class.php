@@ -92,7 +92,10 @@ class RevSliderSliderImport extends RevSliderSlider {
 			//do the update routines
 			$slider = new RevSliderSliderImport();
 			$slider->init_by_id($this->slider_id);
-			RevSliderPluginUpdate::upgrade_slider_to_latest($slider);
+			$upd = new RevSliderPluginUpdate();
+			
+			$upd->upgrade_slider_to_latest($slider);
+			//RevSliderPluginUpdate::upgrade_slider_to_latest($slider);
 			
 			//reinit because we just updated data which is outside of the $slider object
 			$slider = new RevSliderSliderImport();
@@ -588,6 +591,9 @@ class RevSliderSliderImport extends RevSliderSlider {
 		if(!isset($params['layout'])) $params['layout'] = array();
 		if(!isset($params['layout']['bg'])) $params['layout']['bg'] = array();
 		
+		//remove imageId if it is set
+		if($this->get_val($params, array('layout', 'bg', 'imageId'), false) !== false) unset($params['layout']['bg']['imageId']);
+		
 		if($this->get_val($params, array('layout', 'bg', 'useImage'), false) !== false){
 			$params['layout']['bg']['useImage'] = $this->check_file_in_zip($this->download_path, $this->get_val($params, array('layout', 'bg', 'useImage')), $alias, $this->imported);
 			$params['layout']['bg']['useImage'] = $this->get_image_url_from_path($this->get_val($params, array('layout', 'bg', 'useImage')));
@@ -987,6 +993,12 @@ class RevSliderSliderImport extends RevSliderSlider {
 						$medium		= $this->get_val($layer, array('media', 'thumbs', 'medium'), false);
 						$small		= $this->get_val($layer, array('media', 'thumbs', 'small'), false);
 						
+						$very_big	= (is_array($very_big) && isset($very_big['url'])) ? $very_big['url'] : $very_big;
+						$big		= (is_array($big) && isset($big['url'])) ? $big['url'] : $big;
+						$large		= (is_array($large) && isset($large['url'])) ? $large['url'] : $large;
+						$medium		= (is_array($medium) && isset($medium['url'])) ? $medium['url'] : $medium;
+						$small		= (is_array($small) && isset($small['url'])) ? $small['url'] : $small;
+						
 						if($image_url !== false)$layer['media']['imageUrl']			 = $this->get_image_url_from_path($this->check_file_in_zip($this->download_path, $image_url, $alias, $this->imported));
 						if($bg_image !== false) $layer['idle']['backgroundImage']	 = $this->get_image_url_from_path($this->check_file_in_zip($this->download_path, $bg_image, $alias, $this->imported));
 						if($very_big !== false) $layer['media']['thumbs']['veryBig'] = $this->get_image_url_from_path($this->check_file_in_zip($this->download_path, $very_big, $alias, $this->imported));
@@ -1105,10 +1117,11 @@ class RevSliderSliderImport extends RevSliderSlider {
 		$layers = $this->get_val($slide, 'layers', array());
 		
 		//change for WPML the parent IDs if necessary
-		$parent_id = $this->get_val($slide, array('child', 'parentId'), false);
+		$parent_id = $this->get_val($slide, array('params', 'child', 'parentId'), false);
 		
 		if(!in_array($parent_id, array(false, ''), true) && isset($this->map[$parent_id])){
 			$create = array('params' => $params);
+			
 			$this->set_val($create, array('params', 'child', 'parentId'), $this->map[$parent_id]);
 			
 			$new_params = json_encode($create['params']);

@@ -36,8 +36,8 @@ class RevSliderCssParser extends RevSliderFunctions {
 		
 		//trim from bottom
 		if(!empty($end_text)){
-			$pos_end	= strpos($content, $end_text);
-			$content	= ($pos_end !== false) ? substr($content, 0, $pos_end) : $content;
+			$pos_end = strpos($content, $end_text);
+			$content = ($pos_end !== false) ? substr($content, 0, $pos_end) : $content;
 		}
 		
 		//get styles
@@ -45,7 +45,7 @@ class RevSliderCssParser extends RevSliderFunctions {
 		
 		foreach($lines as $key => $line){
 			$line = trim($line);
-			if(strpos($line, '{') === false || strpos($line, ".caption a") || strpos($line, ".tp-caption a") !== false)
+			if(strpos($line, '{') === false || strpos($line, '.caption a') || strpos($line, '.tp-caption a') !== false)
 				continue;
 			
 			//get style out of the line
@@ -144,13 +144,13 @@ class RevSliderCssParser extends RevSliderFunctions {
 		);
 		
 		foreach($css_array as $id => $attr){
-			$stripped			= (strpos($attr['handle'], '.tp-caption') !== false) ? trim(str_replace('.tp-caption', '', $attr['handle'])) : '';
-			$attr['advanced']	= json_decode($attr['advanced'], true);
-			$styles				= json_decode(str_replace("'", '"', $attr['params']), true);
-			$styles_adv			= $attr['advanced']['idle'];
-			$css				.= $attr['handle'];
-			$css				.= (!empty($stripped)) ? ', '.$stripped : '';
-			$css				.= ' {'.$nl;
+			$stripped	= (strpos($attr['handle'], '.tp-caption') !== false) ? trim(str_replace('.tp-caption', '', $attr['handle'])) : '';
+			$attr['advanced'] = json_decode($attr['advanced'], true);
+			$styles		= json_decode(str_replace("'", '"', $attr['params']), true);
+			$styles_adv	= $attr['advanced']['idle'];
+			$css		.= $attr['handle'];
+			$css		.= (!empty($stripped)) ? ', '.$stripped : '';
+			$css		.= ' {'.$nl;
 			
 			if(is_array($styles) || is_array($styles_adv)){
 				if(is_array($styles)){

@@ -32,6 +32,13 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		$this->font_icon_paths = apply_filters('revslider_object_library_icon_paths', $this->font_icon_paths);
 	}
 	
+	/**
+	 * get available sizes
+	 * @since: 6.1.4
+	 **/
+	public function get_sizes(){
+		return $this->sizes;
+	}
 	
 	/**
 	 * get list of objects
@@ -49,7 +56,6 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		
 		// Get latest object list
 		if(time() - $last_check > 1296000 || $force == true){ //30 days
-			
 			update_option('revslider-library-check', time());
 			
 			$validated = get_option('revslider-valid', 'false');
@@ -83,7 +89,7 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	public function _get_object_data($object_handle){
 		$data = array('thumb' => false, 'orig' => false);
 
-		$file = $this->upload_dir['basedir'] . $this->object_thumb_path . $object_handle;
+		//$file = $this->upload_dir['basedir'] . $this->object_thumb_path . $object_handle;
 		/*if(file_exists($file)){
 			$data['thumb'] = $this->upload_dir['baseurl'] . $this->object_thumb_path . $object_handle;
 		}*/
@@ -102,6 +108,7 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	 * @since: 5.3.0
 	 */
 	public function _is_object($url){
+		$url		= $this->get_correct_size_url($url, 100, true);
 		$is_object	= false;
 		$upload_url	= $this->upload_dir['baseurl'] . $this->object_orig_path;
 		$file_name	= explode('/', $url);
@@ -185,6 +192,8 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		
 		if(intval($object_handle) > 0){
 			$object_handle = $this->get_object_handle_by_id($object_handle);
+		}else{ //check if we are original image and if not change it to original image
+			$object_handle = $this->get_object_handle_by_downsized($object_handle);
 		}
 		
 		if($type == 'video_full'){
@@ -193,14 +202,10 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		
 		$error		= '';
 		$path		= (in_array($type, $this->allowed_types, true)) ? $this->object_thumb_path : $this->object_orig_path;
-		
-		$_download	= false;
 		$file		= $this->upload_dir['basedir'] . $path . $object_handle;
 		$url_file	= $this->upload_dir['baseurl'] . $path . $object_handle;
 		$validated	= get_option('revslider-valid', 'false');
-		
-		//check if object thumb is already downloaded
-		$_download	= (!is_file($file)) ? true : false;
+		$_download	= (!is_file($file)) ? true : false; //check if object thumb is already downloaded
 		
 		if($validated == 'false' && !in_array($type, $this->allowed_types, true)){
 			return array('error' => __('Plugin not activated', 'revslider'));
@@ -296,6 +301,34 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		return array('error' => false, 'url' => $url_file, 'width' => $width, 'height' => $height);
 	}
 	
+	/**
+	 * gets the original image name if the given one is not the orig file
+	 * -75-50x100
+	 * -75
+	 **/
+	public function get_object_handle_by_downsized($object_handle){
+		$object_handle = basename($object_handle);
+		$tmp = explode('.', $object_handle);
+		if(count($tmp) > 1){
+			$_tmp = explode('-', $tmp[0]);
+			if(count($_tmp) > 1){
+				//check last if it has an x or is an integeter like 50
+				$e = array_pop($_tmp);
+				$x = false;
+				if(strpos($e, 'x') !== false){
+					$_e = str_replace('x', '', $e);
+					$x = (intval($_e) > 0) ? true : $x;
+				}
+				$object_handle = ($x === true || in_array($e, $this->sizes)) ? str_replace('-'.$e, '', $object_handle): $object_handle;
+				//check again last if it is an integeter like 50
+				$e = array_pop($_tmp);
+				$object_handle = (in_array($e, $this->sizes)) ? str_replace('-'.$e, '', $object_handle) : $object_handle;
+			}
+		}
+		
+		return $object_handle;
+	}
+	
 	
 	/**
 	 * import object layer from ThemePunch Server
@@ -353,17 +386,25 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		}else{
 			//cant download file
 		}
-		if($layers_data === false && $error == ''){//could not connect to server
-			$error = __('Error downloading layers data', 'revslider');
-		}
 		
-		if($error !== ''){
-			return array('error' => $error);
-		}
+		//could not connect to server
+		$error = ($layers_data === false && $error == '') ? __('Error downloading layers data', 'revslider') : $error;
 		
-		$data = json_decode($layers_data);
-		if(empty($data)){
-			$data = json_decode(stripslashes($layers_data));
+		if($error !== '') return array('error' => $error);
+		
+		$data = json_decode($layers_data, true);
+		$data = (empty($data)) ? json_decode(stripslashes($layers_data), true) : $data;
+		
+		if(!empty($data)){
+			foreach($data as $k => $v){
+				$svg_source = $this->get_val($data[$k], array('svg', 'source'));
+				if(!empty($svg_source)){
+					$t = explode('/wp-content/plugins/revslider/', $svg_source);
+					if(is_array($t) && count($t) == 2){
+						$this->set_val($data, array($k, 'svg', 'source'), RS_PLUGIN_URL.$t[1]);
+					}
+				}
+			}
 		}
 		
 		return array('error' => false, 'data' => $data);
@@ -461,9 +502,7 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 					}
 				}
 				
-				if($obj['type'] == '3'){
-					$t = 'video';
-				}
+				$t = ($obj['type'] == '3') ? 'video' : $t;
 				
 				$objects[$key]['title'] = $this->get_val($obj, 'name');
 				unset($objects[$key]['name']);
@@ -504,6 +543,72 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	}
 	
 	
+	/**
+	 * load images or videos from the media library into a list
+	 **/
+	/*public function load_wp_objects($type, $after = false){
+		$args = array(
+			'post_type'		 => 'attachment',
+			'post_mime_type' => $type,
+			'orderby'		 => 'post_date',
+			'order'			 => 'desc',
+			'posts_per_page' => '-1',
+			'post_status'    => 'inherit'
+		);
+		
+		//$date = '2019-10-07 08:06:00';
+		if($after !== false){
+			$args['date_query'] = array(array('after' => $after));
+		}
+		
+		$wpml = new RevSliderWpml();
+		if($wpml->wpml_exists()){
+			global $sitepress;
+			$sitepress->switch_lang('all');
+		}
+		
+		$loop	= new WP_Query($args);
+		$return = array();
+		$up_url = $this->get_val($this->upload_dir, 'baseurl');
+		if(!empty($loop->posts)){
+			foreach($loop->posts as $image){
+				$mt = (strpos($this->get_val($image, 'post_mime_type'), 'image/') !== false) ? 'image' : '';
+				$mt = (strpos($this->get_val($image, 'post_mime_type'), 'video/') !== false) ? 'video' : $mt;
+				$data = wp_get_attachment_metadata($image->ID);
+
+				if($data === false) continue;
+				
+				$sizes = ($mt === 'video') ? array('full') : array_keys($this->get_val($data, 'sizes'));
+				$img_url = ($mt === 'video') ? wp_get_attachment_url($image->ID) : $up_url.'/'.str_replace(basename($data['file']), '', $data['file']).$this->get_val($data, array('sizes', 'thumbnail', 'file'));
+				$handle = ($mt === 'video') ? basename($img_url) : basename($data['file']);
+				
+				$mime = explode('/', $this->get_val($image, 'post_mime_type'));
+				$mime = $this->get_val($mime, 1);
+				$return[$image->ID] = array(
+					'id'			=> $image->ID,
+					//'handle'		=> $this->get_val($image, 'post_name'), // basename($data['file']) ?
+					'handle'		=> $handle, //basename($data['file']),
+					'tags'			=> array($mime),
+					'description'	=> $this->get_val($image, 'post_excerpt'),
+					'width'			=> $this->get_val($data, 'width'),
+					'height'		=> $this->get_val($data, 'height'),
+					'version'		=> '1.0',
+					'plugin_version'=> '',
+					'added'			=> $this->get_val($image, 'post_date'),
+					'acive'			=> 1,
+					'title' 		=> $this->get_val($image, 'post_title'), //basename($data['file']),
+					//'img' 			=> $up_url.'/'.$this->get_val($data, 'file'),
+					'img' 			=> $img_url, //$up_url.'/'.$path.$this->get_val($data, array('sizes', 'thumbnail', 'file')), //, 'file'
+					'orig'			=> '',
+					'sizes'			=> $sizes
+				);
+			}
+		}
+
+		return $return;
+	}*/
+	
+	
 	public function get_objects_categories($type = 'all'){
 		//type 1 = object
 		//type 2 = image
@@ -520,7 +625,6 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 						continue;
 					}
 				}
-				
 				
 				$new_tags = $this->get_val($obj, 'tags', array());
 				if(!empty($new_tags)){
@@ -543,16 +647,6 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 			}
 		}
 		
-		/*
-		if(!empty($tags_raw)){
-			foreach($tags_raw as $tag){
-				$name	= $this->get_val($tag, 'name');
-				$handle	= $this->get_val($tag, 'handle');
-				if(!isset($tags[$handle])) $tags[$handle] = ucwords($name);
-			}
-		}
-		*/
-		
 		return $tags;
 	}
 	
@@ -565,7 +659,6 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		
 		$upload_directory = $this->upload_dir['basedir'] . $this->object_orig_path;
 		$image_path		= $upload_directory.$handle;
-
 		$file_name_we	= explode('/', $image_path);
 		$file_name_we	= $file_name_we[count($file_name_we) - 1];
 		$file_name_woe	= explode('.', $file_name_we);
@@ -604,7 +697,6 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	 * Check if Curl can be used
 	 */
 	public function check_curl_connection(){
-		
 		if($this->curl_check !== null) return $this->curl_check;
 		
 		$curl = new WP_Http_Curl();
@@ -614,22 +706,30 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		return $this->curl_check;
 	}
 	
-	
 	/**
 	 * Returns an URL if it is an object library image, depending on the choosen width/height
 	 */
-	public function get_correct_size_url($image_id, $size){
-		$object_handle	= $this->get_object_handle_by_id($image_id);
-		$image_path		= $this->upload_dir['basedir'] . $this->object_orig_path . $object_handle;
-		$image_url		= $this->upload_dir['baseurl'] . $this->object_orig_path;
+	public function get_correct_size_url($image_id, $size, $full = false){
+		if(intval($image_id) > 0){
+			$object_handle = $this->get_object_handle_by_id($image_id);
+		}else{
+			$object_handle = $this->get_object_handle_by_downsized($image_id);
+		}
+		
+		$image_path	= $this->upload_dir['basedir'] . $this->object_orig_path . $object_handle;
+		$image_url	= $this->upload_dir['baseurl'] . $this->object_orig_path;
 		
 		if(!file_exists($image_path)) return '';
-		if(!in_array($size, $this->sizes)) return '';
+		if(!in_array($size, $this->sizes) && $full === false) return '';
 		
-		$file_split = explode('.', $object_handle);
-		
-		if(count($file_split) === 2){
-			$image_url .= $file_split[0].'-'.$size.'.'.$file_split[1];
+		if($full === false){
+			$file_split = explode('.', $object_handle);
+			
+			if(count($file_split) === 2){
+				$image_url .= $file_split[0].'-'.$size.'.'.$file_split[1];
+			}
+		}else{
+			$image_url .= $object_handle;
 		}
 		
 		return $image_url;

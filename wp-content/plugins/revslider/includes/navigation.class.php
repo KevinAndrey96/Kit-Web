@@ -589,10 +589,10 @@ class RevSliderNavigation extends RevSliderFunctions {
 						array(
 							'settings' => json_encode(
 								array(
-									'dim'			=> $this->get_val($nav, 'dim'),
-									'placeholders'	=> $placeholders,
-									'presets'		=> $this->get_val($nav, 'presets'),
-									'version'		=> $this->version
+									'dim'		=> $this->get_val($nav, 'dim'),
+									'placeholders' => $placeholders,
+									'presets'	=> $this->get_val($nav, 'presets'),
+									'version'	=> $this->version
 								)
 							)
 						),
