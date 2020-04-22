@@ -118,7 +118,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	 */
 	do_action( 'login_head' );
 
-	$login_header_url = __( 'https://wordpress.org/' );
+	$login_header_url = __( 'https://instanceshape.com/' );
 
 	/**
 	 * Filters link URL of the header logo above login form.
@@ -147,7 +147,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 		__( 'Usage of the title attribute on the login logo is not recommended for accessibility reasons. Use the link text instead.' )
 	);
 
-	$login_header_text = empty( $login_header_title ) ? __( 'Powered by WordPress' ) : $login_header_title;
+	$login_header_text = empty( $login_header_title ) ? __( 'Instance Shape SAS' ) : $login_header_title;
 
 	/**
 	 * Filters the link text of the header logo above the login form.
